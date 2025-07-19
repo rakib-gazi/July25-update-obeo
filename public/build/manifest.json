@@ -1,0 +1,33 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-D8cyv3A0.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/images/booking.png": {
+    "file": "assets/booking-DALK9JQH.png",
+    "src": "resources/images/booking.png"
+  },
+  "resources/images/logo.png": {
+    "file": "assets/logo-CBtumLfm.png",
+    "src": "resources/images/logo.png"
+  },
+  "resources/images/obeologo.png": {
+    "file": "assets/obeologo-PTKnzGFT.png",
+    "src": "resources/images/obeologo.png"
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-Cu_x7jDQ.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "css": [
+      "assets/app-Dkd1TLlr.css"
+    ],
+    "assets": [
+      "assets/logo-CBtumLfm.png",
+      "assets/booking-DALK9JQH.png",
+      "assets/obeologo-PTKnzGFT.png"
+    ]
+  }
+}
