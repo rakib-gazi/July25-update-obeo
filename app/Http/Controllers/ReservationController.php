@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\View;
 use Inertia\Inertia;
 use Mpdf\Mpdf;
 use Spatie\Browsershot\Browsershot;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
 
 class ReservationController extends Controller
 {
@@ -526,6 +528,8 @@ class ReservationController extends Controller
         }
     }
 
+//    laravel browsershot
+
 //    public function download(Request $request)
 //    {
 //        Log::info('PDF download request received', $request->all());
@@ -623,6 +627,69 @@ class ReservationController extends Controller
 //        }
 //    }
 
+
+//laravel M pdf pakage
+//    public function download(Request $request)
+//    {
+//        Log::info('PDF download request received', $request->all());
+//
+//        $data = $request->only([
+//            'obeo_sl',
+//            'reservation_no',
+//            'guest_name',
+//            'check_in',
+//            'check_out',
+//            'reservation_date',
+//            'hotelName',
+//            'email',
+//            'phone',
+//            'request',
+//            'comment',
+//            'rooms',
+//            'total_adult',
+//            'children',
+//            'total_advance',
+//            'rate',
+//            'currency',
+//            'payment_method',
+//            'source',
+//            'total_night',
+//            'totalUsd',
+//            'totalBdt',
+//            'totalPayInHotel'
+//        ]);
+//
+//        try {
+//            // Render Blade to HTML
+//            $html = View::make('pdf.reservationCopy', $data)->render();
+//
+//            // Create mPDF instance
+//            $mpdf = new Mpdf([
+//                'mode' => 'utf-8',
+//                'format' => 'A4',
+//                'margin_left' => 10,
+//                'margin_right' => 10,
+//                'margin_top' => 10,
+//                'margin_bottom' => 10,
+//            ]);
+//
+//            // Write HTML to PDF
+//            $mpdf->WriteHTML($html);
+//
+//            // Generate file name
+//            $fileName = 'reservation_' . ($data['reservation_no'] ?? 'file') . '.pdf';
+//
+//            // Output to browser
+//            return response($mpdf->Output($fileName, 'S'), 200, [
+//                'Content-Type' => 'application/pdf',
+//                'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+//            ]);
+//        } catch (\Exception $e) {
+//            Log::error('PDF generation failed', ['message' => $e->getMessage()]);
+//            return response()->json(['error' => 'PDF generation failed'], 500);
+//        }
+//    }
+//mpdf with custom fonts
     public function download(Request $request)
     {
         Log::info('PDF download request received', $request->all());
@@ -654,10 +721,16 @@ class ReservationController extends Controller
         ]);
 
         try {
-            // Render Blade to HTML
+            // 1. Render Blade view to HTML
             $html = View::make('pdf.reservationCopy', $data)->render();
 
-            // Create mPDF instance
+            // 2. Configure custom font (Nunito)
+            $defaultConfig = (new ConfigVariables())->getDefaults();
+            $fontDirs = $defaultConfig['fontDir'];
+
+            $defaultFontConfig = (new FontVariables())->getDefaults();
+            $fontData = $defaultFontConfig['fontdata'];
+
             $mpdf = new Mpdf([
                 'mode' => 'utf-8',
                 'format' => 'A4',
@@ -665,15 +738,26 @@ class ReservationController extends Controller
                 'margin_right' => 10,
                 'margin_top' => 10,
                 'margin_bottom' => 10,
+                'fontDir' => array_merge($fontDirs, [
+                    resource_path('fonts/Nunito'),
+                ]),
+                'fontdata' => $fontData + [
+                        'nunito' => [
+                            'R' => 'NunitoSans-Regular.ttf',
+//                            'B' => 'Nunito-Bold.ttf',
+                            // Add 'I' => 'Nunito-Italic.ttf' if needed
+                        ]
+                    ],
+                'default_font' => 'nunito'
             ]);
 
-            // Write HTML to PDF
+            // 3. Write HTML to PDF
             $mpdf->WriteHTML($html);
 
-            // Generate file name
+            // 4. File name
             $fileName = 'reservation_' . ($data['reservation_no'] ?? 'file') . '.pdf';
 
-            // Output to browser
+            // 5. Return PDF as download
             return response($mpdf->Output($fileName, 'S'), 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $fileName . '"',

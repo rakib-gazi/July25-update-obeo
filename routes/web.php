@@ -20,6 +20,9 @@ Route::get('/logout', [UserController::class,'logout'])->name('logout');
 Route::get('/phpinfo', function () {
     phpinfo();
 });
+Route::get('/reservationcopy', function () {
+    return view('pdf.reservationcopy');
+});
 
 
 

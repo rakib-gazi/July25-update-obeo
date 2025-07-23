@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-50 ">
-<div class=" mx-auto p-4">
+<div class="mx-auto p-4">
     <!-- Header -->
     <div class=" p-4 rounded-2xl shadow-md mb-4  flex justify-between items-center bg-white">
         <img src="data:image/png;base64,{{ $logoData }}" alt="Logo" class="h-16">

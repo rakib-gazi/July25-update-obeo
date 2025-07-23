@@ -1,212 +1,405 @@
+{{--@php--}}
+{{--    $logoPath = public_path('images/obeologo.png');--}}
+{{--    $bookingPath = public_path('images/booking.png');--}}
+{{--    $expediaPath = public_path('images/expedia.png');--}}
+{{--    $airbnbPath = public_path('images/airbnb.png');--}}
+{{--    $cTripPath = public_path('images/ctrip.png');--}}
+{{--    $makePath = public_path('images/make.png');--}}
+
+
+
+{{--    $logoData = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : '';--}}
+{{--    $bookingData = file_exists($bookingPath) ? base64_encode(file_get_contents($bookingPath)) : '';--}}
+{{--    $expediaData = file_exists($expediaPath) ? base64_encode(file_get_contents($expediaPath)) : '';--}}
+{{--    $airbnbData = file_exists($airbnbPath) ? base64_encode(file_get_contents($airbnbPath)) : '';--}}
+{{--    $cTripData = file_exists($cTripPath) ? base64_encode(file_get_contents($cTripPath)) : '';--}}
+{{--    $makeData = file_exists($makePath) ? base64_encode(file_get_contents($makePath)) : '';--}}
+{{--@endphp--}}
 @php
-    $logoPath = public_path('images/obeologo.png');
-    $bookingPath = public_path('images/booking.png');
-    $expediaPath = public_path('images/expedia.png');
-    $airbnbPath = public_path('images/airbnb.png');
-    $cTripPath = public_path('images/ctrip.png');
-    $makePath = public_path('images/make.png');
+    function imgToBase64($path) {
+        if (file_exists($path)) {
+            $type = pathinfo($path, PATHINFO_EXTENSION); // e.g. png, jpg
+            $data = file_get_contents($path);
+            $base64 = base64_encode($data);
+            return "data:image/{$type};base64,{$base64}";
+        }
+        return '';
+    }
 
-    $logoData = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : '';
-    $bookingData = file_exists($bookingPath) ? base64_encode(file_get_contents($bookingPath)) : '';
-    $expediaData = file_exists($expediaPath) ? base64_encode(file_get_contents($expediaPath)) : '';
-    $airbnbData = file_exists($airbnbPath) ? base64_encode(file_get_contents($airbnbPath)) : '';
-    $cTripData = file_exists($cTripPath) ? base64_encode(file_get_contents($cTripPath)) : '';
-    $makeData = file_exists($makePath) ? base64_encode(file_get_contents($makePath)) : '';
+    $logoData = imgToBase64(public_path('images/obeologo.png'));
+    $bookingData = imgToBase64(public_path('images/booking.png'));
+    $expediaData = imgToBase64(public_path('images/expedia.png'));
+    $airbnbData = imgToBase64(public_path('images/airbnb.png'));
+    $cTripData = imgToBase64(public_path('images/ctrip.png'));
+    $makeData = imgToBase64(public_path('images/make.png'));
+
+
+    $data = [
+    "obeo_sl" => 202507027007,
+    "reservation_no" => "121211",
+    "guest_name" => "Rakib Gazi",
+    "check_in" => "2025-07-09",
+    "check_out" => "2025-07-18",
+    "reservation_date" => "2025-07-23",
+    "hotelName" => "Royal Raj Hotel",
+    "email" => null,
+    "phone" => "01876987622",
+    "request" => "This is request",
+    "comment" => "this is comment",
+    "rooms" => [
+        [
+            "id" => 47,
+            "name" => "Deluxe Single Room",
+            "total_room" => 2,
+            "total_night" => 2,
+            "total_price" => "200.00",
+            "currency_id" => 2,
+            "currency" => ["id" => 2, "currency" => "USD"]
+        ],
+        [
+            "id" => 48,
+            "name" => "Deluxe Double Room",
+            "total_room" => 3,
+            "total_night" => 4,
+            "total_price" => "500.00",
+            "currency_id" => 3,
+            "currency" => ["id" => 3, "currency" => "BDT"]
+        ]
+    ],
+    "total_adult" => 2,
+    "children" => [
+        ["id" => 94, "age" => 3],
+        ["id" => 95, "age" => 3],
+        ["id" => 96, "age" => 2]
+    ],
+    "total_advance" => "20.00",
+    "rate" => "199",
+    "currency" => "USD",
+    "payment_method" => "Hotel Collects",
+    "source" => "Booking.com",
+    "total_night" => 2,
+    "totalUsd" => "0.00",
+    "totalBdt" => "40300.00",
+    "totalPayInHotel" => 40280
+];
+
+
+  $obeo_sl = $data['obeo_sl'];
+$reservation_no = $data['reservation_no'];
+$guest_name = $data['guest_name'];
+$check_in = $data['check_in'];
+$check_out = $data['check_out'];
+$reservation_date = $data['reservation_date'];
+$hotelName = $data['hotelName'];
+$email = $data['email'];
+$phone = $data['phone'];
+$request = $data['request'];
+$comment = $data['comment'];
+$rooms = $data['rooms'];
+$total_adult = $data['total_adult'];
+$children = $data['children'];
+$total_advance = $data['total_advance'];
+$rate = $data['rate'];
+$currency = $data['currency'];
+$payment_method = $data['payment_method'];
+$source = $data['source'];
+$total_night = $data['total_night'];
+$totalUsd = $data['totalUsd'];
+$totalBdt = $data['totalBdt'];
+$totalPayInHotel = $data['totalPayInHotel'];
+
 @endphp
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{$guest_name}}</title>
-    <style>
-        body {
-            background-color: #f9fafb;
-            font-family: Arial, sans-serif;
-            color: #111827;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 16px;
-        }
-        .card {
-            background-color: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 16px;
-            padding: 16px;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .header img {
-            height: 64px;
-        }
-        .text-right {
-            text-align: right;
-        }
-        .title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #0f172a;
-        }
-        .subtitle {
-            font-size: 16px;
-            font-weight: bold;
-            color: #0f172a;
-        }
-        .section-title {
-            background-color: #9f825c21;
-            text-align: center;
-            padding: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-            color: #000;
-        }
-        .grid {
-            display: flex;
-            flex-wrap: wrap;
-        }
-        .col-3 {
-            width: 33.33%;
-            box-sizing: border-box;
-            padding: 6px;
-        }
-        .col-2 {
-            width: 50%;
-            box-sizing: border-box;
-            padding: 6px;
-        }
-        .label {
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .value {
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-        .footer {
-            background-color: #fff;
-            padding: 8px;
-            text-align: center;
-            margin-top: 20px;
-        }
-        hr {
-            border: 1px solid #ccc;
-        }
-    </style>
-</head>
-<body>
-<div class="container">
-    <div class="card header">
-        <img src="data:image/png;base64,{{ $logoData }}" alt="Logo">
-        <div class="text-right">
-            <div>
-                @if ($source === 'Booking.com')
-                    <img src="data:image/png;base64,{{ $bookingData }}" alt="Reservation Source" style="height: 24px;">
-                @elseif ($source === 'Expedia')
-                    <img src="data:image/png;base64,{{ $expediaData }}" alt="Reservation Source" style="height: 32px;">
-                @elseif ($source === 'Airbnb')
-                    <img src="data:image/png;base64,{{ $airbnbData }}" alt="Reservation Source" style="height: 32px;">
-                @elseif ($source === 'Ctrip')
-                    <img src="data:image/png;base64,{{ $cTripData }}" alt="Reservation Source" style="height: 40px;">
-                @elseif ($source === 'Makemytrip')
-                    <img src="data:image/png;base64,{{ $makeData }}" alt="Reservation Source" style="height: 40px;">
-                @else
-                    <h1 class="title">Direct Booking</h1>
-                @endif
-            </div>
-            <h1 class="title">Hotel Reservation</h1>
-            <h3 class="subtitle">{{$hotelName}}</h3>
-        </div>
-    </div>
 
-    <div class="card">
-        <div class="section-title">Reservation Information</div>
-        <div class="grid">
-            <div class="col-3"><p class="label">Guest Name</p><div class="value">{{$guest_name}}</div></div>
-            <div class="col-3"><p class="label">Reservation No</p><div class="value">{{$reservation_no}}</div></div>
-            <div class="col-3"><p class="label">Obeo Sl</p><div class="value">{{$obeo_sl}}</div></div>
-            <div class="col-3"><p class="label">Check In</p><div class="value">{{$check_in}}</div></div>
-            <div class="col-3"><p class="label">Check Out</p><div class="value">{{$check_out}}</div></div>
-            <div class="col-3"><p class="label">Booked on</p><div class="value">{{$reservation_date}}</div></div>
-            <div class="col-3"><p class="label">Total Room</p><div class="value">{{ is_array($rooms) ? count($rooms) : 'N/A' }} Rooms</div></div>
-            <div class="col-3"><p class="label">Total Nights</p><div class="value">{{$total_night}} Nights</div></div>
-            <div class="col-3"><p class="label">Total Adults</p><div class="value">{{$total_adult}} Adults</div></div>
-            <div class="col-3"><p class="label">Childrens & Age ({{ count($children) }})</p>
-                <div class="value">
-                    @if (is_array($children) && count($children) > 0)
-                        {{ collect($children)->pluck('age')->implode(', ') }} years
-                    @else
-                        N/A
-                    @endif
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>{{$guest_name}}</title>
+        <style>
+            body {
+                font-family: 'nunito';
+            }
+            .card {
+                background-color: #ffffff;
+                border-radius: 16px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                margin-bottom: 16px;
+            }
+            .header img {
+                height: 64px;
+            }
+            .section-title {
+                background-color: #f2efea;
+                text-align: center;
+                padding: 6px;
+                font-size: 16px;
+                font-weight: bold;
+                border-top-left-radius: 12px;
+                border-top-right-radius: 12px;
+                color: #000;
+            }
+            .label {
+                font-size: 11px;
+                font-weight: bold;
+            }
+            .value {
+                font-size: 13px;
+                margin-bottom: 4px;
+            }
+            hr {
+                border: 1px solid #ccc;
+            }
+            .info-table {
+                width: 100%;
+                border-collapse: collapse;
+                text-align: left;
+            }
+
+            .info-table td {
+                width: 33%;
+                padding: 6px 10px;
+                vertical-align: top;
+            }
+
+            .label {
+                font-weight: bold;
+                font-size:  12px ;
+                line-height: 1 16px ;
+            }
+
+            .value {
+                margin-top: 4px;
+                font-size: 11pt;
+            }
+            .room-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+
+            .room-table td {
+                padding: 4px 8px;
+                vertical-align: top;
+            }
+
+            .room-name {
+                font-weight: bold;
+            }
+
+            .text-right {
+                text-align: right;
+            }
+
+            .total-bold {
+                font-weight: bold;
+                text-align: right;
+            }
+            .total-value-bold {
+                font-weight: bold;
+                text-align: left;
+            }
+        </style>
+    </head>
+    <body style="background-color: #f9fafb;">
+        <div style=" margin-left: auto; margin-right: auto;">
+            <!-- Header -->
+           <div class="card" style="padding: 16px">
+               <table style="width: 100%; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                border-collapse: collapse;">
+                   <tr>
+                       <td style="width: 70px; vertical-align: middle;">
+                           <img src="{{ $logoData }}" alt="Logo" style="height: 64px;">
+                       </td>
+                       <td style="vertical-align: middle; text-align: right;">
+                           <div>
+                               @if ($source === 'Booking.com')
+                                   <img src="{{ $bookingData }}" alt="Reservation Source" style="height: 24px;">
+                               @elseif ($source === 'Expedia')
+                                   <img src="{{ $expediaData }}" alt="Reservation Source" style="height: 32px;">
+                               @elseif ($source === 'Airbnb')
+                                   <img src="{{ $airbnbData }}" alt="Reservation Source" style="height: 32px;">
+                               @elseif ($source === 'Ctrip')
+                                   <img src="{{ $cTripData }}" alt="Reservation Source" style="height: 40px;">
+                               @elseif ($source === 'Makemytrip')
+                                   <img src="{{ $makeData }}" alt="Reservation Source" style="height: 40px;">
+                               @else
+                                   <h1 style="font-weight: 700; color: #083344; font-size: 1.25rem;">Direct Booking</h1>
+                               @endif
+                           </div>
+                           <h1 style="font-weight: bold; color: #083344; font-size: 1.5rem; margin: 0;">Hotel Reservation</h1>
+                           <h3 style="font-weight: 500; color: #083344; font-size: 1.125rem; margin: 0;">{{$hotelName}}</h3>
+                       </td>
+                   </tr>
+               </table>
+           </div>
+            <!-- reservation Information -->
+            <div class="card">
+                <div class="section-title">Reservation Information</div>
+                <div style="padding: 0 16px 16px;">
+                    <table class="info-table" >
+                        <tr>
+                            <td>
+                                <div class="label">Guest Name</div>
+                                <div class="value">{{ $guest_name }}</div>
+                            </td>
+                            <td>
+                                <div class="label">Reservation No</div>
+                                <div class="value">{{ $reservation_no }}</div>
+                            </td>
+                            <td>
+                                <div class="label">Obeo Sl</div>
+                                <div class="value">{{ $obeo_sl }}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="label">Check In</div>
+                                <div class="value">{{ $check_in }}</div>
+                            </td>
+                            <td>
+                                <div class="label">Check Out</div>
+                                <div class="value">{{ $check_out }}</div>
+                            </td>
+                            <td>
+                                <div class="label">Booked on</div>
+                                <div class="value">{{ $reservation_date }}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="label">Total Room</div>
+                                <div class="value">{{ is_array($rooms) ? count($rooms) : 'N/A' }} Rooms</div>
+                            </td>
+                            <td>
+                                <div class="label">Total Nights</div>
+                                <div class="value">{{ $total_night }} Nights</div>
+                            </td>
+                            <td>
+                                <div class="label">Total Adults</div>
+                                <div class="value">{{ $total_adult }} Adults</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="label">Childrens & Age ({{ count($children) }})</div>
+                                <div class="value">@if (is_array($children) && count($children) > 0)
+                                        {{ collect($children)->pluck('age')->implode(', ') }} years
+                                    @else
+                                        N/A
+                                    @endif</div>
+                            </td>
+                            <td>
+                                <div class="label">Phone Number</div>
+                                <div class="value">{{ $phone ?? 'N/A' }}</div>
+                            </td>
+                            <td>
+                                <div class="label">Email</div>
+                                <div class="value">{{ $email ?? 'N/A' }}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+            </div>
+            <!-- payment & pricing -->
+            <div class="card">
+                <div class="section-title">Payment & Pricing</div>
+                <div style="padding: 0 16px 16px;">
+                    <table class="info-table" >
+                        <tr>
+                            <td>
+                                <div class="label">Price (USD)</div>
+                                <div class="value">${{$totalUsd}}</div>
+                            </td>
+                            <td>
+                                <div class="label">Exchange Rate</div>
+                                <div class="value">{{$rate}} TK</div>
+                            </td>
+                            <td>
+                                <div class="label">Total Price (BDT)</div>
+                                <div class="value">{{$totalBdt}} TK</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="label">Total Advance</div>
+                                <div class="value">{{$total_advance}} TK</div>
+                            </td>
+                            <td>
+                                <div class="label">Total Pay In Hotel</div>
+                                <div class="value">{{$totalPayInHotel}} TK</div>
+                            </td>
+                            <td>
+                                <div class="label">Payment Method</div>
+                                <div class="value">{{$payment_method}}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
-            <div class="col-3"><p class="label">Phone Number</p><div class="value">{{$phone ?? 'N/A'}}</div></div>
-            <div class="col-3"><p class="label">Email</p><div class="value">{{$email ?? 'N/A'}}</div></div>
-        </div>
-    </div>
+            <!-- Room wise information -->
+            <div class="card">
+                <div class="section-title">Room Wise Information & Price Details</div>
+                <div style="padding: 0 16px 16px;">
+                    <table class="room-table" >
+                        @foreach($rooms as $room)
+                            @php
+                                $roomName = $room['name'];
+                                $totalRoom = $room['total_room'];
+                                $totalNight = $room['total_night'];
+                                $totalPrice = (float)$room['total_price'];
+                                $rate = (float) $rate;
+                                $baseRateCount = $totalRoom * $totalNight;
+                                $currency = $room['currency']['currency'];
+                                $totalPriceInBdt = $currency === 'USD' ?  $totalPrice * $rate : $totalPrice;
+                                $totalBasePriceForRoom = $totalPriceInBdt / $baseRateCount;
+                                $totalRoomPrice = $totalRoom * $totalBasePriceForRoom;
+                                $totalNightPrice = $totalRoomPrice * $totalNight;
+                            @endphp
 
-    <div class="card">
-        <div class="section-title">Payment & Pricing</div>
-        <div class="grid">
-            <div class="col-3"><p class="label">Price (USD)</p><div class="value">${{$totalUsd}}</div></div>
-            <div class="col-3"><p class="label">Exchange Rate</p><div class="value">{{$rate}} TK</div></div>
-            <div class="col-3"><p class="label">Total Price (BDT)</p><div class="value">{{$totalBdt}} TK</div></div>
-            <div class="col-3"><p class="label">Total Advance</p><div class="value">{{$total_advance}} TK</div></div>
-            <div class="col-3"><p class="label">Total Pay In Hotel</p><div class="value">{{$totalPayInHotel}} TK</div></div>
-            <div class="col-3"><p class="label">Payment Method</p><div class="value">{{$payment_method}}</div></div>
-        </div>
-    </div>
+                                <!-- Room Name + Price -->
+                            <tr>
+                                <td class="room-name">{{ $roomName }} ({{ $totalRoom }})</td>
+                                <td class="text-right">({{ $totalRoom }} * {{ number_format($totalBasePriceForRoom, 0) }}) {{ number_format($totalRoomPrice, 0) }} TK</td>
+                            </tr>
 
-    <div class="card">
-        <div class="section-title">Room Wise Information & Price Details</div>
-        @foreach($rooms as $room)
-            @php
-                $roomName = $room['name'];
-                $totalRoom = $room['total_room'];
-                $totalNight = $room['total_night'];
-                $totalPrice = (float)$room['total_price'];
-                $rate = (float) $rate;
-                $baseRateCount = $totalRoom * $totalNight;
-                $currency = $room['currency']['currency'];
-                $totalPriceInBdt = $currency === 'USD' ?  $totalPrice * $rate : $totalPrice;
-                $totalBasePriceForRoom = $totalPriceInBdt/$baseRateCount;
-                $totalRoomPrice = $totalRoom * $totalBasePriceForRoom;
-                $totalNightPrice= $totalRoomPrice * $totalNight;
-            @endphp
-            <div>
-                <p><strong>{{$roomName}} ({{$totalRoom}})</strong> - ({{$totalRoom}} * {{number_format($totalBasePriceForRoom, 2)}}) = {{number_format($totalRoomPrice, 2)}} TK</p>
-                <p>Total Night ({{$totalNight}}) - ({{$totalNight}} * {{number_format($totalRoomPrice, 2)}}) = {{number_format($totalNightPrice, 2)}} TK</p>
-                <hr>
-                <p><strong>Total Amount:</strong> {{number_format($totalNightPrice, 2)}} TK</p>
+                            <!-- Total Night Price -->
+                            <tr>
+                                <td>Total Night ({{$totalNight}})</td>
+                                <td class="text-right">({{ $totalNight }} * {{ number_format($totalRoomPrice, 0) }}) {{ number_format($totalNightPrice, 0) }} TK</td>
+                            </tr>
+
+                            <!-- Total Amount -->
+                            <tr>
+                                <td class="total-value-bold">Total Amount</td>
+                                <td class="total-bold">{{ number_format($totalNightPrice, 0) }} TK</td>
+                            </tr>
+                        @endforeach
+                    </table>
+                </div>
             </div>
-        @endforeach
-    </div>
-
-    <div class="card">
-        <div class="section-title">Comments & Requests</div>
-        <div class="grid">
-            <div class="col-2">
-                <p class="label">Special Request</p>
-                <div class="value">{{$request}}</div>
+            <!-- comments & requests -->
+            <div class="card">
+                <div class="section-title">Comments & Requests</div>
+                <div style="padding: 0 16px 16px;">
+                    <table class="info-table" >
+                    <tr>
+                        <td>
+                            <div class="label">Special Request</div>
+                            <div class="value">{{$request}}</div>
+                        </td>
+                        <td>
+                            <div class="label">Comments</div>
+                            <div class="value">{{$comment}}</div>
+                        </td>
+                    </tr>
+                </table>
+                </div>
             </div>
-            <div class="col-2">
-                <p class="label">Comments</p>
-                <div class="value">{{$comment}}</div>
+            <!-- Footer -->
+            <div class="card" style="padding: 16px">
+               <p style="text-align: center"> &copy; Obeo Limited. All rights reserved.</p>
             </div>
         </div>
-    </div>
-
-    <div class="footer">
-        &copy; Obeo Limited. All rights reserved.
-    </div>
-</div>
-</body>
+    </body>
 </html>
