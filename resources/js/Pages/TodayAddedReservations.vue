@@ -1,7 +1,8 @@
 <script setup>
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 import { router, useForm, usePage,Link } from "@inertiajs/vue3";
-import {computed, ref, watchEffect, reactive, onMounted } from 'vue';
+import {computed, ref, watchEffect } from 'vue';
+import { route } from 'ziggy-js';
 import Swal from "sweetalert2";
 import {
     Combobox,
@@ -17,13 +18,16 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import {CheckIcon, ChevronUpDownIcon} from "@heroicons/vue/20/solid/index.js";
 dayjs.extend(customParseFormat);
-
+const finduser = usePage().props.auth.user;
+const loggedUserId = finduser ? finduser.id : null;
 const userData = ref(usePage().props.reservations);
 const formHotels = ref(usePage().props.hotels);
 const formRates = ref(usePage().props.rates);
 const formCurrencies = ref(usePage().props.currencies);
 const formSources = ref(usePage().props.sources);
 const formPayments = ref(usePage().props.payments);
+const formStatus = ref(usePage().props.status);
+const reservationStatus = formStatus.value;
 const isModalOpen = ref(false);
 const isSubmitting = ref(false);
 let editingUserId = null;
@@ -134,6 +138,7 @@ const closeModal = () => {
 };
 // Form
 const reservationData = useForm({
+    user_id: loggedUserId,
     reservation_no: '',
     check_in: null,
     check_out: null,
@@ -151,7 +156,8 @@ const reservationData = useForm({
     request:'',
     comment: '',
     children: [],
-    rooms: []
+    rooms: [],
+    status_id: null,
 });
 // Refresh User List
 const fetchUsers = () => {
@@ -168,7 +174,7 @@ const fetchUsers = () => {
 // Prepare Edit
 const handleEdit = (item) => {
     editingUserId = item.id;
-    // Fill the form fields
+    reservationData.status_id = item.status_id || null;
     reservationData.reservation_no = item.reservation_no || '';
     reservationData.check_in = item.check_in || null;
     reservationData.check_out = item.check_out || null;
@@ -195,14 +201,27 @@ const handleEdit = (item) => {
     reservationDate.value = item.reservation_date ? dayjs(item.reservation_date, 'YYYY-MM-DD') : null;
     selected.value = formHotels.value.find(hotel => hotel.id === item.hotel.id) || null;
     selectedRate.value = formRates.value.find(rate => rate.id === item.rate.id) || null;
-    selectedCurrency.value = formCurrencies.value.find(currency => currency.id === item.currency.id) || null;
+    selectedCurrency.value = formCurrencies.value.find(currency => currency.id === item.currency?.id) || null;
     selectedSource.value = formSources.value.find(source => source.id === item.source.id) || null;
     selectedPayment.value = formPayments.value.find(payment => payment.id === item.payment_method.id) || null;
 
-    childAges.value = item.children?.map(child => ({
-        id: child.id,
-        age: child.age.toString()
-    })) || [];
+    // childAges.value = item.children?.map(child => ({
+    //     id: child.id,
+    //     age: child.age.toString()
+    // })) || [];
+    // childAges.value = (item.children && item.children.length > 0)
+    //     ? item.children.map(child => ({
+    //         id: child.id,
+    //         age: child.age.toString()
+    //     }))
+    //     : [{ id: null, age: '' }];
+    childAges.value = (item.children && item.children.length > 0)
+        ? item.children.map(child => ({
+            id: child.id,
+            age: child.age.toString(),
+        }))
+        : [{ id: null, age: '' }]; // Always one empty child input
+
     rooms.value = item.rooms?.map(room => {
         const currency = formCurrencies.value.find(c =>
             c.id === (room.currency_id || room.currency?.id)
@@ -262,8 +281,9 @@ const tableHeaders = [
     { text: 'C/OUT', value: 'check_out' },
     { text: 'Name', value: 'guest_name' },
     { text: 'Hotel', value: 'hotel.hotelName' },
-    { text: 'Room', value: 'rooms' },
+    // { text: 'Room', value: 'rooms' },
     { text: 'Total Price',  value: 'total_price_bdt' },
+    { text: 'Status',  value: 'status_id' },
     { text: 'Actions', value: 'actions' },
 ];
 function getTotalPriceInBDT(rooms, rate) {
@@ -299,9 +319,16 @@ function addChildAge() {
         childAges.value.push({ id: null, age: '' })
     }
 }
+// function removeChildAge(index) {
+//     childAges.value.splice(index, 1)
+// }
 function removeChildAge(index) {
-    childAges.value.splice(index, 1)
+    childAges.value.splice(index, 1);
+    if (childAges.value.length === 0) {
+        childAges.value.push({ id: null, age: '' }); // Always keep one empty input
+    }
 }
+
 function getColSpanClass(count) {
     switch (count) {
         case 1:
@@ -354,17 +381,25 @@ const handleSubmit = () => {
     reservationData.check_in = reservationData.check_in ? dayjs(reservationData.check_in).format('YYYY-MM-DD') : null;
     reservationData.check_out = reservationData.check_out ? dayjs(reservationData.check_out).format('YYYY-MM-DD') : null;
     reservationData.reservation_date = reservationData.reservation_date ? dayjs(reservationData.reservation_date).format('YYYY-MM-DD') : null;
+    // reservationData.children = childAges.value
+    //     .filter(age => age !== '')
+    //     .map(age => ({
+    //         id: age.id,
+    //         age: age.age
+    //     }));
     reservationData.children = childAges.value
-        .filter(age => age !== '')
+        .filter(age => age.age !== '' && age.age !== null && age.age !== undefined)
         .map(age => ({
             id: age.id,
             age: age.age
         }));
+
     reservationData.rooms = rooms.value.map(room => ({
         ...room,
         currency_id: room.currency_id?.id || null
     }));
     reservationData.put(`/dashboard/update-reservation/${editingUserId}`, {
+
         onSuccess: () => {
             Swal.fire({
                 icon: 'success',
@@ -378,11 +413,134 @@ const handleSubmit = () => {
         onFinish: () => isSubmitting.value = false
     });
 };
+const onStatusChange = (event, id) => {
+    const selectedId = event.target.value;
+    router.patch(`/dashboard/update-status/${id}`, {
+        status_id: selectedId
+    }, {
+        onSuccess: () => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Status updated successfully',
+                showConfirmButton: false,
+                timer: 1000
+            });
+            router.reload({
+                only: ['reservations'],
+                onSuccess: () => {
+                    userData.value = usePage().props.reservations;
+                }
+            });
+        },
+    });
+};
+
+const downloadLoadingIds = ref([]);
+const handleDownload = async (item) => {
+    downloadLoadingIds.value.push(item.id);
+    let totalUsd = 0;
+    let totalBdt = 0;
+    let calculatedTotalAdvance = 0;
+    const allInUSD = item.rooms.every(room => room.currency?.currency === 'USD');
+
+    if (allInUSD) {
+        item.rooms.forEach(room => {
+            const price = parseFloat(room.total_price) || 0;
+            totalUsd += price;
+        });
+        totalBdt = totalUsd * parseFloat(item.rate.rate || 0);
+    } else {
+        item.rooms.forEach(room => {
+            const price = parseFloat(room.total_price) || 0;
+            const currency = room.currency?.currency;
+
+            if (currency === 'USD') {
+                totalBdt += price * parseFloat(item.rate.rate || 0); // convert to BDT
+            } else {
+                totalBdt += price; // already in BDT
+            }
+        });
+    }
+    // const totalPayInHotel = totalBdt - item.total_advance;
+    const advance = parseFloat(item.total_advance || 0);
+    const rate = parseFloat(item.rate?.rate || 0);
+    const currency = item.currency?.currency;
+
+    if (currency === 'USD') {
+        calculatedTotalAdvance= (advance * rate).toFixed(2); // Convert USD to BDT
+    }
+    else{
+        calculatedTotalAdvance= advance.toFixed(2); // Already in BDT
+    }
+
+    const totalPayInHotel = totalBdt - parseFloat(calculatedTotalAdvance);
+    try {
+        const response = await fetch(route('reservation.pdf'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({
+                obeo_sl: item.obeo_sl,
+                reservation_no:item.reservation_no,
+                guest_name: item.guest_name,
+                check_in: item.check_in,
+                check_out: item.check_out,
+                reservation_date:item.reservation_date,
+                hotelName: item.hotel.hotelName,
+                email:item.email,
+                phone:item.phone,
+                request:item.request,
+                comment:item.comment,
+                rooms:item.rooms,
+                total_adult:item.total_adult,
+                children:item.children,
+                // total_advance:item.total_advance,
+                total_advance: calculatedTotalAdvance,
+                rate:item.rate.rate,
+                currency: item.currency?.currency ?? 'N/A',
+                // currency:item.currency.currency,
+                payment_method:item.payment_method.payment,
+                source:item.source.source,
+                total_night: item.rooms[0].total_night,
+                totalUsd: totalUsd.toFixed(2),
+                totalBdt: totalBdt.toFixed(2),
+                totalPayInHotel: totalPayInHotel,
+            }),
+
+        });
+
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch PDF');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${item.guest_name}.pdf`; // or dynamically set name from response headers
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Download failed:', error);
+    } finally {
+        downloadLoadingIds.value = downloadLoadingIds.value.filter(id => id !== item.id);
+    }
+};
+const isDownloading = (id) => downloadLoadingIds.value.includes(id);
+
 </script>
 
 <template>
     <AdminLayout>
-        <div>
+
+        <div >
             <div class="flex justify-between items-center">
                 <Link href="/dashboard/reservations" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -391,10 +549,9 @@ const handleSubmit = () => {
 
                     Go Back
                 </Link>
-
                 <Link href="/dashboard/reservations/all-reservations" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
                     </svg>
                     All Reservations
                 </Link>
@@ -954,7 +1111,6 @@ const handleSubmit = () => {
                                                         <option v-for="n in 18" :key="n" :value="n - 1">{{ n - 1 }}</option>
                                                     </select>
                                                     <button
-                                                        v-if="childAges.length > 1"
                                                         @click="removeChildAge(index)"
                                                         type="button"
                                                         class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600"
@@ -1212,32 +1368,35 @@ const handleSubmit = () => {
                 show-index
             >
                 <template #item-guest_name="item">
-                    <div class=" w-20 text-sm font-semibold text-green-700">
+                    <div class=" w-24 text-sm font-semibold ">
                         {{item.guest_name }}
                     </div>
                 </template>
-                <template #item-rooms="{ rooms }">
-                    <div class="space-y-1">
-                        <div v-for="(room, index) in rooms" :key="index" class="text-sm text-gray-700">
-                            <strong>{{ room.name }}</strong>
-                            <p class="flex justify-start items-center gap-1">R*{{ room.total_room }}
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
-                                </svg>
-                                N*{{ room.total_night }}
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
-                                </svg>
-                                {{ room.total_price }} {{ room.currency?.currency ?? '' }}
-                            </p>
-                        </div>
-                    </div>
-                </template>
-                <template #item-total_price_bdt="item" >
-                    <div class="text-sm font-semibold text-green-700">
+                <template #item-total_price_bdt="item">
+                    <div class="text-sm font-semibold ">
                         {{ getTotalPriceInBDT(item.rooms,item.rate.rate) }} BDT
                     </div>
                 </template>
+                <template #item-status_id="item">
+                    <div class="text-sm font-semibold">
+                        <!-- Reservation Status -->
+                        <select
+                            :value="item.status_id"
+                            @change="onStatusChange($event, item.id)"
+                            class="bg-gray-50  border-gray-300 text-gray-900 text-sm rounded-lg border-0 bg-transparent  focus:border-0 block w-full p-2.5 "
+                        >
+                            <option disabled value="">Select status</option>
+                            <option
+                                v-for="status in reservationStatus"
+                                :key="status.id"
+                                :value="status.id"
+                            >
+                                {{ status.status }}
+                            </option>
+                        </select>
+                    </div>
+                </template>
+
                 <template #expand="item">
                     <div class="p-4 grid grid-cols-4 gap-2">
                         <div>
@@ -1273,8 +1432,8 @@ const handleSubmit = () => {
                             <div v-if="item.children?.length">
                                <p> <strong>Children ({{item.children.length}}):</strong > (<span v-for="child in item.children" :key="child.id"> {{ child.age }}, </span>)</p>
                             </div>
-                            <p><strong>Total Advance:</strong> {{ item.total_advance }}</p>
-                            <p><strong>Exchange Rate:</strong> {{ item.rate?.rate }} {{ item.currency?.currency }}</p>
+                            <p><strong>Total Advance:</strong> {{ item.total_advance }} {{ item.currency?.currency }}</p>
+                            <p><strong>Exchange Rate:</strong> {{ item.rate?.rate }} Tk</p>
                             <p><strong>Payment Method:</strong>  {{ item.payment_method.payment }}</p>
                             <p><strong>Source:</strong> {{ item.source.source }}</p>
                         </div>
@@ -1283,16 +1442,36 @@ const handleSubmit = () => {
                 </template>
                 <template #item-actions="item">
                     <div class="flex gap-2">
-                        <button @click="handleEdit(item)" class="bg-yellow-400 text-white px-2 py-1 rounded text-sm hover:bg-yellow-500">
-                            Edit
+                        <button @click=" handleDownload(item)" :disabled="isDownloading(item.id)">
+                            <svg v-if="isDownloading(item.id)" aria-hidden="true" class="w-5 h-5 text-gray-200 animate-spin  fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                            </svg>
+
+                            <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
                         </button>
-                        <button @click="handleDelete(item.id)" class="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600">
-                            Delete
+                        <button @click="handleEdit(item)" class=" text-white  rounded text-sm ">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-blue-600">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            </svg>
+                        </button>
+                        <button  type="button" class=" text-white  rounded text-sm " :title="item.user.fullName">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-sky-700">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                            </svg>
+                        </button>
+                        <button @click="handleDelete(item.id)" class=" text-white  rounded text-sm ">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-red-500">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
                         </button>
                     </div>
                 </template>
             </EasyDataTable>
         </div>
+
     </AdminLayout>
 </template>
 

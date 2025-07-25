@@ -30,7 +30,7 @@ return new class extends Migration
             $table->foreignId('rate_id')
                 ->constrained('rates')
                 ->restrictOnDelete()->cascadeOnUpdate();
-            $table->decimal('total_advance', 10,2)->default(0);
+            $table->decimal('total_advance', 10,2)->nullable();
             $table->foreignId('currency_id')->nullable()
                 ->constrained('currencies')
                 ->restrictOnDelete()->cascadeOnUpdate();

@@ -58,7 +58,7 @@ class ReservationController extends Controller
     function addreservation(Request $request)
     {
         $messages = [
-        '   reservation_no.regex' => 'Reservation number must be a number.',
+            'reservation_no.regex' => 'Reservation number must be a number.',
             'hotel_id.required' =>'The hotel is required',
             'rate_id.required' =>'The Exchange Rate is required',
             'source_id.required' =>'The Reservation Source is required',
@@ -79,7 +79,7 @@ class ReservationController extends Controller
             'rooms.*.total_room.max' => 'Maximum 50 Room.',
             'rooms.*.total_price.required' => 'Price required.',
             'rooms.*.total_price.numeric' => 'Must be number',
-            'rooms.*.total_price.max' => 'Maximum 0 .',
+            'rooms.*.total_price.max' => 'Minimum 0 .',
             'rooms.*.currency_id.required' => 'Currency required.',
         ];
         $data = $request->validate([
@@ -109,7 +109,7 @@ class ReservationController extends Controller
 
             'rooms.*.name' => 'required|string|max:255',
             'rooms.*.total_night' => 'required|integer|min:1|max:99',
-            'rooms.*.total_room' => 'required|integer|min:1||max:99',
+            'rooms.*.total_room' => 'required|integer|min:1|max:99',
             'rooms.*.total_price' => 'required|numeric|min:0',
             'rooms.*.currency_id' => 'required|exists:currencies,id',
         ],$messages);
@@ -135,7 +135,7 @@ class ReservationController extends Controller
                 'hotel_id' => $data['hotel_id'],
                 'guest_name' => $data['guest_name'],
                 'rate_id' => $data['rate_id'],
-                'total_advance' => $data['total_advance'],
+                'total_advance' => $data['total_advance']?? null,
                 'currency_id' => $data['currency_id'] ?? null,
                 'source_id' => $data['source_id'],
                 'payment_method_id' => $data['payment_method_id'],
@@ -240,6 +240,7 @@ class ReservationController extends Controller
         $rates = Rate::select('id', 'rate')->get();
         $currencies = Currency::select('id', 'currency')->get();
         $sources = Source::select('id','source')->get();
+        $status = ReservationStatus::select('id', 'status')->get();
         $payments = PaymentMethod::select('id', 'payment')->get();
         $reservations = Reservation::whereDate('created_at', Carbon::today())->with([
             'user:id,fullName',
@@ -280,7 +281,8 @@ class ReservationController extends Controller
             'rates' => $rates,
             'currencies' => $currencies,
             'sources' => $sources,
-            'payments' => $payments
+            'payments' => $payments,
+            'status' => $status
         ]);
 //        return response()->json($reservations);
     }
@@ -528,171 +530,8 @@ class ReservationController extends Controller
         }
     }
 
-//    laravel browsershot
-
-//    public function download(Request $request)
-//    {
-//        Log::info('PDF download request received', $request->all());
-//
-//        $data = $request->only([
-//            'obeo_sl',
-//            'reservation_no',
-//            'guest_name',
-//            'check_in',
-//            'check_out',
-//            'reservation_date',
-//            'hotelName',
-//            'email',
-//            'phone',
-//            'request',
-//            'comment',
-//            'rooms',
-//            'total_adult',
-//            'children',
-//            'total_advance',
-//            'rate',
-//            'currency',
-//            'payment_method',
-//            'source',
-//            'total_night',
-//            'totalUsd',
-//            'totalBdt',
-//            'totalPayInHotel'
-//        ]);
-//
-//        try {
-//            $html = view('pdf.reservationCopy', $data)->render();
-//
-//            $path = storage_path('app/public/reservation.pdf');
-//
-//            Browsershot::html($html)
-//                ->format('A4')
-//                ->showBackground()
-//                ->margins(8, 6, 10, 6)
-//                ->save($path);
-//            return response()->download($path)->deleteFileAfterSend(true);
-//        } catch (Exception $e) {
-//            Log::error('PDF generation failed', ['message' => $e->getMessage()]);
-//            return response()->json(['error' => 'PDF generation failed'], 500);
-//        }
-//    }
-
-
-//    public function download(Request $request)
-//    {
-//        Log::info('PDF download request received', $request->all());
-//
-//        $data = $request->only([
-//            'obeo_sl',
-//            'reservation_no',
-//            'guest_name',
-//            'check_in',
-//            'check_out',
-//            'reservation_date',
-//            'hotelName',
-//            'email',
-//            'phone',
-//            'request',
-//            'comment',
-//            'rooms',
-//            'total_adult',
-//            'children',
-//            'total_advance',
-//            'rate',
-//            'currency',
-//            'payment_method',
-//            'source',
-//            'total_night',
-//            'totalUsd',
-//            'totalBdt',
-//            'totalPayInHotel'
-//        ]);
-//
-//        try {
-//            // Generate the PDF using dompdf
-//            $pdf = Pdf::loadView('pdf.reservationCopy', $data)
-//                ->setPaper('A4');
-//
-//            $path = storage_path('app/public/reservation.pdf');
-//
-//            // Save the PDF file
-//            $pdf->save($path);
-//
-//            // Return download response
-//            return response()->download($path)->deleteFileAfterSend(true);
-//
-//        } catch (Exception $e) {
-//            Log::error('PDF generation failed', ['message' => $e->getMessage()]);
-//            return response()->json(['error' => 'PDF generation failed'], 500);
-//        }
-//    }
-
-
-//laravel M pdf pakage
-//    public function download(Request $request)
-//    {
-//        Log::info('PDF download request received', $request->all());
-//
-//        $data = $request->only([
-//            'obeo_sl',
-//            'reservation_no',
-//            'guest_name',
-//            'check_in',
-//            'check_out',
-//            'reservation_date',
-//            'hotelName',
-//            'email',
-//            'phone',
-//            'request',
-//            'comment',
-//            'rooms',
-//            'total_adult',
-//            'children',
-//            'total_advance',
-//            'rate',
-//            'currency',
-//            'payment_method',
-//            'source',
-//            'total_night',
-//            'totalUsd',
-//            'totalBdt',
-//            'totalPayInHotel'
-//        ]);
-//
-//        try {
-//            // Render Blade to HTML
-//            $html = View::make('pdf.reservationCopy', $data)->render();
-//
-//            // Create mPDF instance
-//            $mpdf = new Mpdf([
-//                'mode' => 'utf-8',
-//                'format' => 'A4',
-//                'margin_left' => 10,
-//                'margin_right' => 10,
-//                'margin_top' => 10,
-//                'margin_bottom' => 10,
-//            ]);
-//
-//            // Write HTML to PDF
-//            $mpdf->WriteHTML($html);
-//
-//            // Generate file name
-//            $fileName = 'reservation_' . ($data['reservation_no'] ?? 'file') . '.pdf';
-//
-//            // Output to browser
-//            return response($mpdf->Output($fileName, 'S'), 200, [
-//                'Content-Type' => 'application/pdf',
-//                'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
-//            ]);
-//        } catch (\Exception $e) {
-//            Log::error('PDF generation failed', ['message' => $e->getMessage()]);
-//            return response()->json(['error' => 'PDF generation failed'], 500);
-//        }
-//    }
-//mpdf with custom fonts
     public function download(Request $request)
     {
-        Log::info('PDF download request received', $request->all());
 
         $data = $request->only([
             'obeo_sl',
@@ -719,7 +558,7 @@ class ReservationController extends Controller
             'totalBdt',
             'totalPayInHotel'
         ]);
-
+        Log::info('PDF download request received', $data);
         try {
             // 1. Render Blade view to HTML
             $html = View::make('pdf.reservationCopy', $data)->render();
@@ -744,25 +583,31 @@ class ReservationController extends Controller
                 'fontdata' => $fontData + [
                         'nunito' => [
                             'R' => 'NunitoSans-Regular.ttf',
-//                            'B' => 'Nunito-Bold.ttf',
+                            '600' => 'NunitoSans-SemiBold.ttf',
                             // Add 'I' => 'Nunito-Italic.ttf' if needed
-                        ]
+                        ],
+                        'nunito600' => [
+                            'R' => 'NunitoSans-SemiBold.ttf',
+                        ],
                     ],
                 'default_font' => 'nunito'
             ]);
 
             // 3. Write HTML to PDF
             $mpdf->WriteHTML($html);
+            $guestName = $data['guest_name'] && $data['payment_method'] ?? 'guest';
+            $cleanGuestName = preg_replace('/[^A-Za-z0-9 _-]/', '_', $guestName);
+            $cleanGuestName = str_replace(' ', '_', $cleanGuestName);
 
-            // 4. File name
-            $fileName = 'reservation_' . ($data['reservation_no'] ?? 'file') . '.pdf';
+            $fileName = $cleanGuestName . ' .pdf';
 
-            // 5. Return PDF as download
-            return response($mpdf->Output($fileName, 'S'), 200, [
+            return response($mpdf->Output('', 'S'), 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
             ]);
-        } catch (\Exception $e) {
+
+
+        } catch (Exception $e) {
             Log::error('PDF generation failed', ['message' => $e->getMessage()]);
             return response()->json(['error' => 'PDF generation failed'], 500);
         }

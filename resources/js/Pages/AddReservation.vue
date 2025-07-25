@@ -254,7 +254,7 @@ const handleSubmit = () => {
         ...room,
         currency_id: room.currency_id?.id || null
     }));
-    console.log(reservationData);
+
     reservationData.post('/dashboard/add-reservation', {
         onSuccess: () => {
             Swal.fire({
