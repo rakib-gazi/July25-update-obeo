@@ -17,12 +17,12 @@ Route::get('/logout', [UserController::class,'logout'])->name('logout');
 
 
 
-Route::get('/phpinfo', function () {
-    phpinfo();
-});
-Route::get('/reservationcopy', function () {
-    return view('pdf.reservationcopy');
-});
+//Route::get('/phpinfo', function () {
+//    phpinfo();
+//});
+//Route::get('/reservationcopy', function () {
+//    return view('pdf.reservationcopy');
+//});
 
 
 
@@ -42,6 +42,9 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::get('/dashboard/add-reservation',[ReservationController::class, 'reservation'])->name('reservation');
         Route::get('/dashboard/reservations/all-reservations',[ReservationController::class, 'getAllReservations'])->name('getAllReservations');
         Route::get('/dashboard/reservations/today-added-reservations',[ReservationController::class, 'getTodayAddedReservations'])->name('getTodayAddedReservations');
+        Route::get('/dashboard/reservations/current-month-reservations',[ReservationController::class, 'getCurrentMonthReservations'])->name('getCurrentMonthReservations');
+        Route::get('/dashboard/reservations/previous-month-reservations',[ReservationController::class, 'getPreviousMonthReservations'])->name('getPreviousMonthReservations');
+        Route::get('/dashboard/reservations/next-month-reservations',[ReservationController::class, 'getNextMonthReservations'])->name('getNextMonthReservations');
         Route::post('/dashboard/add-reservation',[ReservationController::class,'addreservation'])->name('add-reservation');
         Route::put('/dashboard/update-reservation/{id}',[ReservationController::class,'updateReservation'])->name('updateReservation');
         Route::patch('/dashboard/update-status/{id}',[ReservationController::class,'updateStatus'])->name('updateStatus');
@@ -81,7 +84,7 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::get('/dashboard/settings/delete-payment-method/{id}', [SettingsController::class,'deletePaymentMethod'])->name('deletePaymentMethod');
 
 
-        //Payment Method   Settings
+        //reservation Status  Settings
         Route::get('dashboard/settings/reservation-status-settings',[SettingsController::class, 'getReservationStatus'])->name('getReservationStatus');
         Route::post('/dashboard/settings/add-reservation-status',[SettingsController::class,'addReservationStatus'])->name('addReservationStatus');
         Route::put('/dashboard/settings/update-reservation-status/{id}',[SettingsController::class,'updateReservationStatus'])->name('updateReservationStatus');

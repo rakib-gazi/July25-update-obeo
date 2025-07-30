@@ -319,9 +319,7 @@ function addChildAge() {
         childAges.value.push({ id: null, age: '' })
     }
 }
-// function removeChildAge(index) {
-//     childAges.value.splice(index, 1)
-// }
+
 function removeChildAge(index) {
     childAges.value.splice(index, 1);
     if (childAges.value.length === 0) {
@@ -381,12 +379,6 @@ const handleSubmit = () => {
     reservationData.check_in = reservationData.check_in ? dayjs(reservationData.check_in).format('YYYY-MM-DD') : null;
     reservationData.check_out = reservationData.check_out ? dayjs(reservationData.check_out).format('YYYY-MM-DD') : null;
     reservationData.reservation_date = reservationData.reservation_date ? dayjs(reservationData.reservation_date).format('YYYY-MM-DD') : null;
-    // reservationData.children = childAges.value
-    //     .filter(age => age !== '')
-    //     .map(age => ({
-    //         id: age.id,
-    //         age: age.age
-    //     }));
     reservationData.children = childAges.value
         .filter(age => age.age !== '' && age.age !== null && age.age !== undefined)
         .map(age => ({
@@ -534,6 +526,29 @@ const handleDownload = async (item) => {
     }
 };
 const isDownloading = (id) => downloadLoadingIds.value.includes(id);
+const monthName = new Date().toLocaleString('en-US', { month: 'long' })
+const searchValue = ref('');
+const processedUserData = computed(() =>
+    userData.value.map((item) => ({
+        ...item,
+        hotelName: item.hotel?.hotelName ?? '',
+    }))
+);
+
+const sortedUserData = computed(() => {
+    return [...processedUserData.value].sort((a, b) => {
+        return new Date(a.check_in) - new Date(b.check_in);
+    });
+});
+
+const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date.toLocaleString('en-GB', { month: 'long' }).toLowerCase();
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+};
+
 
 </script>
 
@@ -549,12 +564,38 @@ const isDownloading = (id) => downloadLoadingIds.value.includes(id);
 
                     Go Back
                 </Link>
-                <Link href="/dashboard/reservations/today-added-reservations" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
-                    </svg>
-                    Today Added Reservations
-                </Link>
+                <div class="flex items-center gap-4">
+                    <Link href="/dashboard/add-reservation" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        Add Reservation
+                    </Link>
+                    <Link href="/dashboard/reservations/today-added-reservations" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+                        </svg>
+                        Today Added Reservations
+                    </Link>
+                    <Link href="/dashboard/reservations/current-month-reservations" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" />
+                        </svg>
+                        {{ monthName }} Reservations
+                    </Link>
+                    <Link href="/dashboard/reservations/previous-month-reservations" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.689v8.122ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061a1.125 1.125 0 0 1 1.683.977v8.122Z" />
+                        </svg>
+                        Previous Reservations
+                    </Link>
+                    <Link href="/dashboard/reservations/next-month-reservations" class="mb-4 text-white bg-cyan-950 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z" />
+                        </svg>
+                        Next Reservations
+                    </Link>
+                </div>
             </div>
 
             <!-- Modal -->
@@ -1357,16 +1398,40 @@ const isDownloading = (id) => downloadLoadingIds.value.includes(id);
                     </div>
                 </Dialog>
             </TransitionRoot>
-
+            <div class="flex justify-between items-center gap-2 mb-2">
+                <div class="bg-white shadow-md px-4 py-2 rounded-lg w-1/2">
+                    <h1 class="text-cyan-950 text-2xl font-bold py-0.5">All Reservations</h1>
+                </div>
+                <div class="relative  shadow-md w-1/2">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                        </svg>
+                    </div>
+                    <input type="search" v-model="searchValue" id="default-search" class="block w-full p-4 ps-10 text-sm text-gray-900  rounded-lg bg-white border-none focus:ring-none focus:border-none" placeholder="Search anything..." />
+                </div>
+            </div>
             <!-- Table -->
             <EasyDataTable
                 buttons-pagination
                 :headers="tableHeaders"
-                :items="userData"
-                :rows-per-page="5"
+                :items="sortedUserData"
+                :search-value="searchValue"
+                :rows-per-page="100"
                 table-class-name="customize-table"
                 show-index
             >
+                <template #item-check_in="item">
+                    <div class="text-sm font-medium">
+                        {{ formatDate(item.check_in) }}
+                    </div>
+                </template>
+
+                <template #item-check_out="item">
+                    <div class="text-sm font-medium">
+                        {{ formatDate(item.check_out) }}
+                    </div>
+                </template>
                 <template #item-guest_name="item">
                     <div class=" w-24 text-sm font-semibold ">
                         {{item.guest_name }}

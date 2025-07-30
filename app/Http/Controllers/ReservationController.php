@@ -181,7 +181,7 @@ class ReservationController extends Controller
         }
     }
     // all reservations
-    function getAllReservations()
+    function getAllReservations(Request $request)
     {
         $hotels =  Hotel::select('id', 'hotelName')->get();
         $rates = Rate::select('id', 'rate')->get();
@@ -234,7 +234,7 @@ class ReservationController extends Controller
 //        return response()->json($reservations);
     }
     // only today added reservation
-    function getTodayAddedReservations()
+    function getTodayAddedReservations(Request $request)
     {
         $hotels =  Hotel::select('id', 'hotelName')->get();
         $rates = Rate::select('id', 'rate')->get();
@@ -260,6 +260,7 @@ class ReservationController extends Controller
                 'hotel_id', 'rate_id', 'currency_id', 'source_id', 'payment_method_id'
             ])
             ->map(function ($reservation) {
+
                 // Remove pivot from children
                 $reservation->children->transform(function ($child) {
                     unset($child->pivot);
@@ -276,6 +277,173 @@ class ReservationController extends Controller
             });
 
         return Inertia::render('TodayAddedReservations', [
+            'reservations' => $reservations,
+            'hotels' => $hotels,
+            'rates' => $rates,
+            'currencies' => $currencies,
+            'sources' => $sources,
+            'payments' => $payments,
+            'status' => $status
+        ]);
+//        return response()->json($reservations);
+    }
+    function getCurrentMonthReservations(Request $request)
+    {
+        $hotels =  Hotel::select('id', 'hotelName')->get();
+        $rates = Rate::select('id', 'rate')->get();
+        $currencies = Currency::select('id', 'currency')->get();
+        $sources = Source::select('id','source')->get();
+        $status = ReservationStatus::select('id', 'status')->get();
+        $payments = PaymentMethod::select('id', 'payment')->get();
+        $reservations = Reservation::whereMonth('check_in', Carbon::now()->month)
+            ->whereYear('check_in', Carbon::now()->year)->with([
+            'user:id,fullName',
+            'reservation_status:id,status',
+            'hotel:id,hotelName',
+            'rate:id,rate',
+            'currency:id,currency',
+            'source:id,source',
+            'paymentMethod:id,payment',
+            'children:id,age',
+            'rooms' => function ($query) {
+                $query->select('rooms.id', 'name', 'total_room', 'total_night', 'total_price', 'currency_id')
+                    ->with('currency:id,currency');
+            }
+        ])->orderBy('check_in')
+            ->get()
+            ->makeHidden([
+                'hotel_id', 'rate_id', 'currency_id', 'source_id', 'payment_method_id'
+            ])
+            ->map(function ($reservation) {
+
+                // Remove pivot from children
+                $reservation->children->transform(function ($child) {
+                    unset($child->pivot);
+                    return $child;
+                });
+
+                // Optionally remove pivot from rooms too
+                $reservation->rooms->transform(function ($room) {
+                    unset($room->pivot);
+                    return $room;
+                });
+
+                return $reservation;
+            });
+
+        return Inertia::render('CurrentMonthReservations', [
+            'reservations' => $reservations,
+            'hotels' => $hotels,
+            'rates' => $rates,
+            'currencies' => $currencies,
+            'sources' => $sources,
+            'payments' => $payments,
+            'status' => $status
+        ]);
+//        return response()->json($reservations);
+    }
+    function getPreviousMonthReservations(Request $request)
+    {
+        $hotels =  Hotel::select('id', 'hotelName')->get();
+        $rates = Rate::select('id', 'rate')->get();
+        $currencies = Currency::select('id', 'currency')->get();
+        $sources = Source::select('id','source')->get();
+        $status = ReservationStatus::select('id', 'status')->get();
+        $payments = PaymentMethod::select('id', 'payment')->get();
+        $previousMonth = Carbon::now()->subMonth();
+        $reservations = Reservation::whereMonth('check_in', $previousMonth->month)
+            ->whereYear('check_in', $previousMonth->year)->with([
+            'user:id,fullName',
+            'reservation_status:id,status',
+            'hotel:id,hotelName',
+            'rate:id,rate',
+            'currency:id,currency',
+            'source:id,source',
+            'paymentMethod:id,payment',
+            'children:id,age',
+            'rooms' => function ($query) {
+                $query->select('rooms.id', 'name', 'total_room', 'total_night', 'total_price', 'currency_id')
+                    ->with('currency:id,currency');
+            }
+        ])->orderBy('check_in')
+            ->get()
+            ->makeHidden([
+                'hotel_id', 'rate_id', 'currency_id', 'source_id', 'payment_method_id'
+            ])
+            ->map(function ($reservation) {
+
+                // Remove pivot from children
+                $reservation->children->transform(function ($child) {
+                    unset($child->pivot);
+                    return $child;
+                });
+
+                // Optionally remove pivot from rooms too
+                $reservation->rooms->transform(function ($room) {
+                    unset($room->pivot);
+                    return $room;
+                });
+
+                return $reservation;
+            });
+
+        return Inertia::render('PreviousMonthReservations', [
+            'reservations' => $reservations,
+            'hotels' => $hotels,
+            'rates' => $rates,
+            'currencies' => $currencies,
+            'sources' => $sources,
+            'payments' => $payments,
+            'status' => $status
+        ]);
+//        return response()->json($reservations);
+    }
+    function getNextMonthReservations(Request $request)
+    {
+        $hotels =  Hotel::select('id', 'hotelName')->get();
+        $rates = Rate::select('id', 'rate')->get();
+        $currencies = Currency::select('id', 'currency')->get();
+        $sources = Source::select('id','source')->get();
+        $status = ReservationStatus::select('id', 'status')->get();
+        $payments = PaymentMethod::select('id', 'payment')->get();
+        $nextMonth = Carbon::now()->addMonth();
+        $reservations =  Reservation::whereMonth('check_in', $nextMonth->month)
+            ->whereYear('check_in', $nextMonth->year)->with([
+            'user:id,fullName',
+            'reservation_status:id,status',
+            'hotel:id,hotelName',
+            'rate:id,rate',
+            'currency:id,currency',
+            'source:id,source',
+            'paymentMethod:id,payment',
+            'children:id,age',
+            'rooms' => function ($query) {
+                $query->select('rooms.id', 'name', 'total_room', 'total_night', 'total_price', 'currency_id')
+                    ->with('currency:id,currency');
+            }
+        ])->orderBy('check_in')
+            ->get()
+            ->makeHidden([
+                'hotel_id', 'rate_id', 'currency_id', 'source_id', 'payment_method_id'
+            ])
+            ->map(function ($reservation) {
+
+                // Remove pivot from children
+                $reservation->children->transform(function ($child) {
+                    unset($child->pivot);
+                    return $child;
+                });
+
+                // Optionally remove pivot from rooms too
+                $reservation->rooms->transform(function ($room) {
+                    unset($room->pivot);
+                    return $room;
+                });
+
+                return $reservation;
+            });
+
+        return Inertia::render('NextMonthReservations', [
             'reservations' => $reservations,
             'hotels' => $hotels,
             'rates' => $rates,
