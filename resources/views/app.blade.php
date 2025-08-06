@@ -8,7 +8,6 @@
     <title>Obeo Admin</title>
     <!-- For Development Environment -->
     @vite('resources/js/app.js')
-
     @inertiaHead
     @routes
     <meta name="csrf-token" content="{{ csrf_token() }}">
