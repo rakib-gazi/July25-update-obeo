@@ -63,5 +63,10 @@ class Reservation extends Model
     {
         return $this->belongsTo(ReservationStatus::class, 'status_id');
     }
+    // Reservation.php
+    public function invoicedReservation()
+    {
+        return $this->hasOne(InvoicedReservation::class, 'reservation_id');
+    }
     protected $hidden = ['created_at', 'updated_at',];
 }

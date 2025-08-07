@@ -13,17 +13,14 @@ use App\Models\ReservationRoom;
 use App\Models\ReservationStatus;
 use App\Models\Room;
 use App\Models\Source;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\View;
 use Inertia\Inertia;
 use Mpdf\Mpdf;
-use Spatie\Browsershot\Browsershot;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 
@@ -779,5 +776,50 @@ class ReservationController extends Controller
             Log::error('PDF generation failed', ['message' => $e->getMessage()]);
             return response()->json(['error' => 'PDF generation failed'], 500);
         }
+    }
+    public function getInvoiceEligibleReservations()
+    {
+        // Assuming "Checked In" status is stored in reservation_statuses table
+        $checkedInStatusId = ReservationStatus::where('status', 'Checked In')->value('id');
+
+        $reservations = Reservation::where('status_id', $checkedInStatusId)
+            ->whereDoesntHave('invoicedReservation')
+            ->with([
+                'user:id,fullName',
+                'reservation_status:id,status',
+                'hotel:id,hotelName',
+                'rate:id,rate',
+                'currency:id,currency',
+                'source:id,source',
+                'paymentMethod:id,payment',
+                'children:id,age',
+                'rooms' => function ($query) {
+                    $query->select('rooms.id', 'name', 'total_room', 'total_night', 'total_price', 'currency_id')
+                        ->with('currency:id,currency');
+                }
+            ])
+            ->get()
+            ->makeHidden([
+                'hotel_id', 'rate_id', 'currency_id', 'source_id', 'payment_method_id'
+            ])
+            ->map(function ($reservation) {
+                // Clean pivot data from children
+                $reservation->children->transform(function ($child) {
+                    unset($child->pivot);
+                    return $child;
+                });
+
+                // Clean pivot data from rooms
+                $reservation->rooms->transform(function ($room) {
+                    unset($room->pivot);
+                    return $room;
+                });
+
+                return $reservation;
+            });
+       //return response()->json(['reservations' => $reservations]);
+        return inertia('CreateHotelInvoice', [
+            'reservations' => $reservations,
+        ]);
     }
 }

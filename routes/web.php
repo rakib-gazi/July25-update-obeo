@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HotelInvoiceController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
@@ -93,6 +94,10 @@ Route::middleware([TokenVerificationMiddleware::class])
         // pdf download route
         Route::post('/reservation/pdf', [ReservationController::class, 'download'])->name('reservation.pdf');
 
+
+        // Hotel invoice Route
+        Route::get('/dashboard/hotel-invoice',[HotelInvoiceController::class, 'hotelInvoice'])->name('hotelInvoiceMainPage');
+        Route::get('/dashboard/hotel-invoice/create-invoice',[ReservationController::class, 'getInvoiceEligibleReservations'])->name('getInvoiceEligibleReservations');
 
 
 
