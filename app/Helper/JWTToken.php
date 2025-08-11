@@ -13,7 +13,7 @@ class JWTToken
         $payload = [
             'iss' => env('JWT_ISSUER'),
             'iat' => time(),
-            'exp' => time() + 3600,
+            'exp' => time() + 36000,
             'userEmail' => $userEmail,
         ];
         return JWT::encode($payload, $key, 'HS256');
