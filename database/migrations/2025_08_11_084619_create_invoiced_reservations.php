@@ -17,6 +17,7 @@ return new class extends Migration
                 ->constrained('reservations')
                 ->restrictOnDelete()->cascadeOnUpdate();
             $table->foreignId('hotel_invoice_id')
+                ->unique()
                 ->constrained('hotel_invoices')
                 ->restrictOnDelete()->cascadeOnUpdate();
             $table->timestamps();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Hotel;
 use App\Models\HotelInvoice;
 use App\Models\HotelInvoiceRoom;
 use App\Models\InvoicedReservation;
@@ -34,18 +35,9 @@ class HotelInvoiceController extends Controller
                 'hotel_id' => $data['hotel_id'],
                 'inv_no' => $hotel_inv,
                 'inv_date' => $hotel_inv_date,
-                'total_amount' => $data['total_amount'],
+                'total_amount' => $data['total_amount'],//firstly total amount of booking then if adjustment happen then after adjustment final amount
                 'total_advance' => $data['total_advance'],
                 'currency_id' => $data['advanceCurency']
-            ]);
-            Log::info('Invoice information', [
-                'reservation_id'   => $data['reservation_id'],
-                'currency_id'      => $data['advanceCurency'],
-                'total_amount'     => $data['total_amount'],
-                'total_advance'    => $data['total_advance'],
-                'hotel_id'         => $data['hotel_id'],
-                'rooms'         => $data['rooms'],
-                'hotel_invoice_id' => $hotelInvoice->id,
             ]);
             $invoicedReservation = InvoicedReservation::create([
                 'reservation_id' => $data['reservation_id'],
@@ -59,16 +51,41 @@ class HotelInvoiceController extends Controller
                     'total_price' => $roomData['total_price'],
                     'currency_id' => $roomData['currency_id'],
                     'exchange_rate' => $data['exchange_rate'],
-                    'commission_type' => $roomData['commission_type'],
-                    'commission_value' => $roomData['commission_value'],
+                    'commission_type' => $data['commission_type'],
+                    'commission_value' => $data['commission_value'],
                 ]);
             }
-//            DB::commit();
+//            Log::info('Invoice information', [
+//                'hotel_id' => $data['hotel_id'],
+//                'inv_no' => $hotel_inv,
+//                'inv_date' => $hotel_inv_date,
+//                'total_amount' => $data['total_amount'],
+//                'total_advance' => $data['total_advance'],
+//                'currency_id' => $data['advanceCurency'],
+//                'reservation_id'   => $data['reservation_id'],
+//                'rooms'         => $data['rooms'],
+//                'hotel_invoice_id' => $hotelInvoice->id,
+//            ]);
+            DB::commit();
 
             return redirect()->back();
         } catch (Exception $e) {
             DB::rollBack();
+            Log::info('Error message', [
+                'error' => $e->getMessage()
+            ]);
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+    function getAllHotelInvoices(Request $request)
+    {
+        $hotelNames = Hotel::select('hotels.hotelName')
+            ->join('hotel_invoices', 'hotels.id', '=', 'hotel_invoices.hotel_id')
+            ->join('invoiced_reservations', 'hotel_invoices.id', '=', 'invoiced_reservations.hotel_invoice_id')
+            ->distinct()
+            ->pluck('hotelName');
+        return Inertia::render('AllHotelInvoices', [
+            'hotelNames' => $hotelNames,
+        ]);
     }
 }

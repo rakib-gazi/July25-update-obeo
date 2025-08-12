@@ -670,7 +670,7 @@ class ReservationController extends Controller
                 'status' => true,
                 'error' => ''
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return redirect()->back()->withErrors($e->getMessage());
         }
@@ -723,7 +723,6 @@ class ReservationController extends Controller
             'totalBdt',
             'totalPayInHotel'
         ]);
-        Log::info('PDF download request received', $data);
         try {
             // 1. Render Blade view to HTML
             $html = View::make('pdf.reservationCopy', $data)->render();

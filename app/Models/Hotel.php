@@ -15,4 +15,8 @@ class Hotel extends Model
         'hotelCollectsCommission',
     ];
     protected $hidden = ['created_at', 'updated_at',];
+    public function hotelInvoices()
+    {
+        return $this->hasMany(HotelInvoice::class);
+    }
 }
