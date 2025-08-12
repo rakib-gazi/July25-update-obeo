@@ -6,5 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvoicedReservation extends Model
 {
-    //
+    protected $fillable = [
+        'reservation_id', 'hotel_invoice_id'
+    ];
+
 }

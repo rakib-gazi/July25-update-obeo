@@ -65,31 +65,48 @@ const reservationData = useForm({
     reservation_id: '',
     hotel_id: '',
     total_amount: '',
-    total_advance: '',
-    advanceCurency: '',
-
+    total_advance: null,
+    advanceCurency: null,
+    exchange_rate: '',
+    commission_type:'',
+    commission_value:null,
+    rooms: []
 })
 const handleCreate=(item)=>{
     reservationData.reservation_id =  item.id;
     reservationData.hotel_id = item.hotel.id;
     reservationData.total_amount = getTotalPriceInBDT(item.rooms,item.rate.rate);
     reservationData.total_advance = item.total_advance;
-    reservationData.advanceCurency = item.currency.id
+    reservationData.advanceCurency = item.currency?.id ? item.currency.id : null;
+    reservationData.exchange_rate = item.rate.rate;
+    reservationData.commission_type = item.hotel.commissionType;
+    if(item.hotel.commissionType === "percent" && item.payment_method.payment === "Hotel Collects"){
+        reservationData.commission_value = item.hotel.hotelCollectsCommission;
+    }
+    else if(item.hotel.commissionType === "percent" && item.payment_method.payment !== "Hotel Collects"){
+        reservationData.commission_value = item.hotel.expediaCollectsCommission;
+    }
+    else{
+        reservationData.commission_value = null;
+    }
+    reservationData.rooms = item.rooms.map(room => ({
+        ...room,
+        currency_id: room.currency?.id || null
+    }));
     console.log(reservationData)
     console.log(item);
-    reservationData.post('/dashboard/hotel-invoice/create-invoice', {
-        onSuccess: () => {
-            Swal.fire({
-                icon: 'success',
-                title: 'Invoice Created successfully',
-                showConfirmButton: false,
-                timer: 2000
-            });
-            // Reset reservation form fields
-            reservationData.reset();
-
-        },
-    });
+    // reservationData.post('/dashboard/hotel-invoice/create-invoice', {
+    //     onSuccess: () => {
+    //         Swal.fire({
+    //             icon: 'success',
+    //             title: 'Invoice Created successfully',
+    //             showConfirmButton: false,
+    //             timer: 2000
+    //         });
+    //         // Reset reservation form fields
+    //         reservationData.reset();
+    //     },
+    // });
 }
 </script>
 

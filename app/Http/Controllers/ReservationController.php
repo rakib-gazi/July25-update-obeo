@@ -787,7 +787,7 @@ class ReservationController extends Controller
             ->with([
                 'user:id,fullName',
                 'reservation_status:id,status',
-                'hotel:id,hotelName',
+                'hotel:id,hotelName,commissionType,expediaCollectsCommission,hotelCollectsCommission',
                 'rate:id,rate',
                 'currency:id,currency',
                 'source:id,source',

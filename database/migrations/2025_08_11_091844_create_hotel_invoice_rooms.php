@@ -25,7 +25,7 @@ return new class extends Migration
             $table->decimal('exchange_rate', 12,2);
             $table->string('commission_type');
             $table->decimal('commission_value', 12,2);
-            $table->decimal('hotel_given_price', 12,2);
+            $table->decimal('hotel_given_price', 12,2)->nullable();
             $table->timestamps();
         });
     }
