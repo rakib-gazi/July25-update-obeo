@@ -7,9 +7,14 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 const invoicesByHotel = ref(usePage().props.invoicesByHotel);
-console.log(invoicesByHotel.value);
 const tableHeaders = [
-    { text: 'Hotel', value: 'hotelName' },
+    { text: 'Invoice No', value: 'inv_no' },
+    { text: 'Invoice Date', value: 'inv_date' },
+    { text: 'Hotel Name', value: 'hotel.hotelName' },
+    { text: 'Guest Name', value: 'reservation.guest_name' },
+    { text: 'Check In', value: 'reservation.check_in' },
+    { text: 'Check Out', value: 'reservation.check_out' },
+    { text: 'Total Amount', value: 'total_amount' },
     { text: 'Actions', value: 'actions' },
 ];
 const searchValue = ref('');
@@ -67,7 +72,7 @@ const handleViewInvoices=(id)=>{
 
             <div class="flex justify-between items-center gap-2 mb-2">
                 <div class="bg-white shadow-md px-4 py-2 rounded-lg w-1/2">
-                    <h1 class="text-cyan-950 text-2xl font-bold py-0.5">All Hotel Invoices</h1>
+                    <h1 class="text-cyan-950 text-2xl font-bold py-0.5">{{invoicesByHotel.hotel}}</h1>
                 </div>
                 <div class="relative  shadow-md w-1/2">
                     <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
@@ -78,23 +83,27 @@ const handleViewInvoices=(id)=>{
                     <input type="search" v-model="searchValue" id="default-search" class="block w-full p-4 ps-10 text-sm text-gray-900  rounded-lg bg-white border-none focus:ring-none focus:border-none" placeholder="Search anything..." />
                 </div>
             </div>
-            <EasyDataTable
-                buttons-pagination
-                :headers="tableHeaders"
-                :items="invoicesByHotel"
-                :search-value="searchValue"
-                :rows-per-page="100"
-                table-class-name="customize-table"
-                show-index
-            >
-                <template #item-actions="item">
-                    <div class="flex gap-2">
-                        <Link  :href="`/dashboard/hotel-invoice/all-invoices/${item.id}`" type="button" class=" text-white  rounded text-sm px-3 py-1 bg-cyan-950 hover:bg-blue-700">
-                            View Invoices
-                        </Link>
-                    </div>
-                </template>
-            </EasyDataTable>
+            <div v-for="monthData in invoicesByHotel.data" :key="monthData.month" class="mb-4">
+                <div class="bg-white shadow-md px-4 py-2 rounded-t-lg">
+                    <h1 class="text-cyan-950 text-xl font-bold py-0.5">{{monthData.month}}</h1>
+                </div>
+                <EasyDataTable
+                    :headers="tableHeaders"
+                    :items="monthData.data"
+                    :search-value="searchValue"
+                    table-class-name="customize-table"
+                    show-index
+                >
+                    <template #item-actions="item">
+                        <div class="flex gap-2">
+                            <Link  :href="`/dashboard/hotel-invoice/all-invoices/${item.id}`" type="button" class=" text-white  rounded text-sm px-3 py-1 bg-cyan-950 hover:bg-blue-700">
+                                View Invoices
+                            </Link>
+                        </div>
+                    </template>
+                </EasyDataTable>
+            </div>
+
         </div>
 
     </AdminLayout>
@@ -107,6 +116,10 @@ const handleViewInvoices=(id)=>{
     --easy-table-header-font-color: #111827;
     --easy-table-body-row-font-color: #374151;
     --easy-table-border: 1px solid #e5e7eb;
+    padding-bottom : 12px !important;
+    background-color: white !important;
+    border-bottom-left-radius: 0.5rem !important;
+    border-bottom-right-radius: 0.5rem !important;
 }
 ::v-deep(.customize-table thead th:nth-child(3)),
 ::v-deep(.customize-table tbody td:nth-child(3)) {
@@ -115,4 +128,11 @@ const handleViewInvoices=(id)=>{
     word-break: break-word;
     white-space: normal;
 }
+::v-deep(.vue3-easy-data-table__main) {
+    min-height: auto !important;
+}
+::v-deep(.vue3-easy-data-table__footer) {
+    display: none !important;
+}
+
 </style>

@@ -88,21 +88,6 @@ class HotelInvoiceController extends Controller
             'hotelNames' => $hotelNames,
         ]);
     }
-    public function getHotelInvoicesByHotel1(Request $request, $hotelId)
-    {
-        $invoices = HotelInvoice::with([
-            'hotel',
-            'invoicedReservation.reservation',
-            'hotelInvoiceRooms'
-        ])
-            ->where('hotel_id', $hotelId)
-            ->get();
-
-//        return Inertia::render('InvoicesByHotel', [
-//            'invoicesByHotel' => $invoices,
-//        ]);
-            return response()->json($invoices);
-    }
     public function getHotelInvoicesByHotel(Request $request, $hotelId)
     {
         $invoices = HotelInvoice::with([
@@ -124,7 +109,7 @@ class HotelInvoiceController extends Controller
                 'total_amount' => $invoice->total_amount,
                 'total_advance' => $invoice->total_advance,
                 'currency_id' => $invoice->currency_id,
-                'hotel_id' => $invoice->hotel_id,
+                'hotelName' => $invoice->hotel->hotelName,
 
                 'hotel' => $invoice->hotel ? [
                     'id' => $invoice->hotel->id,
@@ -160,45 +145,38 @@ class HotelInvoiceController extends Controller
             ];
         });
 
-        // Group by checkout month
+        // Group by checkout month using YYYY-MM as key
         $grouped = $result->groupBy(function ($invoice) {
-            return \Carbon\Carbon::parse($invoice['reservation']['check_out'])->format('F Y');
+            return Carbon::parse($invoice['reservation']['check_out'])->format('Y-m');
         });
 
-        // Format the final output
-        $final = $grouped->map(function ($items, $month) {
+        // Sort by the YYYY-MM key so months are in chronological order
+        $grouped = $grouped->sortKeys();
+
+        // Get the hotel name from first record
+        $hotelName = $result->first()['hotelName'] ?? null;
+
+        // Format grouped months with "F Y" for display
+        $months = $grouped->map(function ($items, $ym) {
             return [
-                'month' => $month,
-                'data' => $items->values() // convert collection to array
+                'month' => Carbon::createFromFormat('Y-m', $ym)->format('F Y'),
+                'data' => $items->values()
             ];
         })->values();
 
-        return response()->json($final);
+        // Final structure
+        $final = [
+            'hotel' => $hotelName,
+            'data' => $months
+        ];
+
+
+        return Inertia::render('InvoicesByHotel', [
+            'invoicesByHotel' => $final,
+        ]);
+        //return response()->json($final);
     }
 
-
-    public function getHotelInvoicesByHotel2(Request $request, $hotelId)
-    {
-        $invoices = HotelInvoice::with([
-            'hotel:id,hotelName,hotelAddress', // only needed hotel fields
-            'invoicedReservation' => function ($query) {
-                // select only needed fields in invoicedReservation
-                $query->select('id', 'reservation_id', 'hotel_invoice_id')
-                    ->with(['reservation' => function ($query) {
-                        // select only desired reservation fields
-                        $query->select('id', 'status_id', 'reservation_no', 'check_in', 'check_out', 'guest_name', 'rate_id', 'source_id', 'payment_method_id');
-                    }]);
-            },
-            // hotelInvoiceRooms: select all needed fields + the foreign key hotel_invoice_id to link
-            'hotelInvoiceRooms:id,room_name,total_room,total_price,currency_id,exchange_rate,commission_type,commission_value,hotel_given_price,hotel_invoice_id'
-        ])
-            ->where('hotel_id', $hotelId)
-            // select only the needed hotel_invoice fields + hotel_id to satisfy relationship
-            ->select('id', 'inv_no', 'inv_date', 'total_amount', 'total_advance', 'currency_id', 'hotel_id')
-            ->get();
-
-        return response()->json($invoices);
-    }
 
 
 }

@@ -82,4 +82,7 @@ const tableHeaders = [
     word-break: break-word;
     white-space: normal;
 }
+::v-deep(.vue3-easy-data-table__main) {
+    min-height: auto !important;
+}
 </style>
