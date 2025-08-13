@@ -1,13 +1,46 @@
 <script setup>
 import AdminLayout from "@/Layouts/AdminLayout.vue";
-import {usePage, Link} from "@inertiajs/vue3";
+import {usePage, Link, useForm, router} from "@inertiajs/vue3";
 import { ref} from 'vue';
-const searchValue = ref('');
-const hotelNames = ref(usePage().props.hotelNames);
+import Swal from "sweetalert2";
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
+const invoicesByHotel = ref(usePage().props.invoicesByHotel);
+console.log(invoicesByHotel.value);
 const tableHeaders = [
     { text: 'Hotel', value: 'hotelName' },
     { text: 'Actions', value: 'actions' },
 ];
+const searchValue = ref('');
+const reservationData = useForm({
+    hotel_id: '',
+})
+const fetchUsers = () => {
+    router.reload({
+        only: ['invoicesByHotel'],
+        onSuccess: () => {
+            invoicesByHotel.value = usePage().props.invoicesByHotel ;
+        }
+    });
+};
+const handleViewInvoices=(id)=>{
+    reservationData.hotel_id = id;
+    console.log(reservationData);
+    reservationData.post('/dashboard/hotel-invoice/invoices-by-hotel', {
+        onSuccess: () => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Invoice Created successfully',
+                showConfirmButton: false,
+                timer: 2000
+            });
+            // Reset reservation form fields
+            reservationData.reset();
+            fetchUsers();
+        },
+    });
+}
 </script>
 
 <template>
@@ -48,7 +81,7 @@ const tableHeaders = [
             <EasyDataTable
                 buttons-pagination
                 :headers="tableHeaders"
-                :items="hotelNames"
+                :items="invoicesByHotel"
                 :search-value="searchValue"
                 :rows-per-page="100"
                 table-class-name="customize-table"

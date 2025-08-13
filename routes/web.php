@@ -100,6 +100,7 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::get('/dashboard/hotel-invoice/create-invoice',[ReservationController::class, 'getInvoiceEligibleReservations'])->name('getInvoiceEligibleReservations');
         Route::post('/dashboard/hotel-invoice/create-invoice',[HotelInvoiceController::class,'createInvoice'])->name('createInvoice');
         Route::get('/dashboard/hotel-invoice/all-invoices',[HotelInvoiceController::class,'getAllHotelInvoices'])->name('getAllHotelInvoices');
+        Route::get('/dashboard/hotel-invoice/all-invoices/{id}',[HotelInvoiceController::class,'getHotelInvoicesByHotel'])->name('getHotelInvoicesByHotel');
 
 
 

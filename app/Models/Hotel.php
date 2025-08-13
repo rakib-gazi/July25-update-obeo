@@ -19,4 +19,5 @@ class Hotel extends Model
     {
         return $this->hasMany(HotelInvoice::class);
     }
+
 }

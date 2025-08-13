@@ -11,4 +11,5 @@ class HotelInvoiceRoom extends Model
         'total_price', 'currency_id', 'exchange_rate',
         'commission_type', 'commission_value', 'hotel_given_price'
     ];
+    protected $hidden = ['created_at', 'updated_at',];
 }
