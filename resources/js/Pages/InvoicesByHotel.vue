@@ -1,7 +1,7 @@
 <script setup>
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 import {usePage, Link, useForm, router} from "@inertiajs/vue3";
-import { ref} from 'vue';
+import {computed, ref} from 'vue';
 import Swal from "sweetalert2";
 import dayjs from 'dayjs';
 import { route } from 'ziggy-js';
@@ -9,6 +9,8 @@ const id = route().params.id;
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 const invoicesByHotel = ref(usePage().props.invoicesByHotel);
+const invoicesDataArray = computed(() => invoicesByHotel.value.success);
+console.log(invoicesDataArray);
 const tableHeaders = [
     { text: 'Invoice No', value: 'inv_no' },
     { text: 'Invoice Date', value: 'inv_date' },
@@ -62,7 +64,12 @@ const applyFilters = () => {
         month: filters.value.month,
         year: filters.value.year,
         showAll: filters.value.showAll
-    }, { preserveState: true });
+    }, {
+        preserveState: true,
+        onSuccess: () => {
+            invoicesByHotel.value = usePage().props.invoicesByHotel;
+        }
+    });
 };
 
 </script>
@@ -91,7 +98,8 @@ const applyFilters = () => {
 
             <div class="flex justify-between items-center gap-2 mb-2">
                 <div class="bg-white shadow-md px-4 py-2 rounded-lg  w-full ">
-                    <h1 class="text-cyan-950 text-2xl font-bold py-0.5">{{invoicesByHotel.hotel}}</h1>
+                    <h1 v-if="!invoicesDataArray" class="text-red-600 text-2xl font-bold py-0.5">No Data Found</h1>
+                    <h1 v-else class="text-cyan-950 text-2xl font-bold py-0.5">{{invoicesByHotel.hotel}}</h1>
                 </div>
                 <div class="relative  shadow-md  w-full ">
                     <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
@@ -131,7 +139,12 @@ const applyFilters = () => {
                 </div>
 
             </div>
-            <div v-for="monthData in invoicesByHotel.data" :key="monthData.month" class="mb-4">
+            <div v-if="!invoicesDataArray">
+                <div class="bg-white shadow-md px-4 py-2 rounded-lg">
+                    <h1 class="text-red-600 text-center text-xl font-bold py-0.5">No Data Found !!!</h1>
+                </div>
+            </div>
+            <div v-else v-for="monthData in invoicesByHotel.data" :key="monthData.month" class="mb-4">
                 <div class="bg-white shadow-md px-4 py-2 rounded-t-lg">
                     <h1 class="text-cyan-950 text-xl font-bold py-0.5">{{monthData.month}}</h1>
                 </div>

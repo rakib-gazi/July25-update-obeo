@@ -88,113 +88,12 @@ class HotelInvoiceController extends Controller
             'hotelNames' => $hotelNames,
         ]);
     }
-//    public function getHotelInvoicesByHotel1(Request $request, $hotelId)
-//    {
-//        $invoices = HotelInvoice::with([
-//            'hotel:id,hotelName,hotelAddress',
-//            'invoicedReservation.reservation:id,status_id,reservation_no,check_in,check_out,guest_name,rate_id,source_id,payment_method_id',
-//            'hotelInvoiceRooms:id,room_name,total_room,total_price,currency_id,exchange_rate,commission_type,commission_value,hotel_given_price,hotel_invoice_id'
-//        ])
-//            ->where('hotel_id', $hotelId)
-//            ->select('id', 'inv_no', 'inv_date', 'total_amount', 'total_advance', 'currency_id', 'hotel_id')
-//            ->get();
-//
-//        $result = $invoices->map(function ($invoice) {
-//            $reservation = $invoice->invoicedReservation?->reservation;
-//
-//            return [
-//                'id' => $invoice->id,
-//                'inv_no' => $invoice->inv_no,
-//                'inv_date' => $invoice->inv_date,
-//                'total_amount' => $invoice->total_amount,
-//                'total_advance' => $invoice->total_advance,
-//                'currency_id' => $invoice->currency_id,
-//                'hotelName' => $invoice->hotel->hotelName,
-//
-//                'hotel' => $invoice->hotel ? [
-//                    'id' => $invoice->hotel->id,
-//                    'hotelName' => $invoice->hotel->hotelName,
-//                    'hotelAddress' => $invoice->hotel->hotelAddress,
-//                ] : null,
-//
-//                'reservation' => $reservation ? [
-//                    'id' => $reservation->id,
-//                    'status_id' => $reservation->status_id,
-//                    'reservation_no' => $reservation->reservation_no,
-//                    'check_in' => $reservation->check_in,
-//                    'check_out' => $reservation->check_out,
-//                    'guest_name' => $reservation->guest_name,
-//                    'rate_id' => $reservation->rate_id,
-//                    'source_id' => $reservation->source_id,
-//                    'payment_method_id' => $reservation->payment_method_id,
-//                ] : null,
-//
-//                'hotel_invoice_rooms' => $invoice->hotelInvoiceRooms->map(function ($room) {
-//                    return [
-//                        'id' => $room->id,
-//                        'room_name' => $room->room_name,
-//                        'total_room' => $room->total_room,
-//                        'total_price' => $room->total_price,
-//                        'currency_id' => $room->currency_id,
-//                        'exchange_rate' => $room->exchange_rate,
-//                        'commission_type' => $room->commission_type,
-//                        'commission_value' => $room->commission_value,
-//                        'hotel_given_price' => $room->hotel_given_price,
-//                    ];
-//                })->values(),
-//            ];
-//        });
-//
-//        // Group by checkout month using YYYY-MM as key
-//        $grouped = $result->groupBy(function ($invoice) {
-//            return Carbon::parse($invoice['reservation']['check_out'])->format('Y-m');
-//        });
-//
-//        // Sort by the YYYY-MM key so months are in chronological order
-//        $grouped = $grouped->sortKeys();
-//
-//        // Get the hotel name from first record
-//        $hotelName = $result->first()['hotelName'] ?? null;
-//
-//        // Format grouped months with "F Y" for display
-//        $months = $grouped->map(function ($items, $ym) {
-//            return [
-//                'month' => Carbon::createFromFormat('Y-m', $ym)->format('F Y'),
-//                'data' => $items->values()
-//            ];
-//        })->values();
-//
-//        // Final structure
-//        $final = [
-//            'hotel' => $hotelName,
-//            'data' => $months
-//        ];
-//
-//
-//        return Inertia::render('InvoicesByHotel', [
-//            'invoicesByHotel' => $final,
-//        ]);
-//        //return response()->json($final);
-//    }
 
     public function getHotelInvoicesByHotel(Request $request, $hotelId)
     {
         $month = $request->input('month');
         $year  = $request->input('year');
-        $showAll =$request->input('showAll');
-        Log::info('veriable info ->ok', [
-            'month' => $month,
-            'year' => $year,
-            'showAll' => $showAll,
-            'hotelId' => $hotelId
-        ]);
-        // If month/year is chosen, disable showAll
-        if ($month && $year) {
-            $showAll = false;
-        }
-        Log::info('disable show all if month & year chosen ->ok', [
-            'showAll' => $showAll,
-        ]);
+        $showAll = filter_var($request->input('showAll'), FILTER_VALIDATE_BOOLEAN) ?? false;
         $query = HotelInvoice::with([
             'hotel:id,hotelName,hotelAddress',
             'invoicedReservation.reservation:id,status_id,reservation_no,check_in,check_out,guest_name,rate_id,source_id,payment_method_id',
@@ -202,59 +101,24 @@ class HotelInvoiceController extends Controller
         ])
             ->where('hotel_id', $hotelId)
             ->select('id', 'inv_no', 'inv_date', 'total_amount', 'total_advance', 'currency_id', 'hotel_id');
-        Log::info('Query ->ok', [
-            'info' => $query->get()
-        ]);
-        Log::info('check show all is ok', [
-            'showall' => !$showAll
-        ]);
+
         // --- Filtering ---
-//        if (!$showAll) {
-//            Log::info('check month & year is ok', [
-//                'month' => $month,
-//                'year' => $year,
-//            ]);
-//            if ($month && $year) {
-//                // Filter by given month/year
-//                $query->whereMonth('inv_date', $month)
-//                    ->whereYear('inv_date', $year);
-//            } else {
-//                // Default: last month dynamically
-//                $lastMonth = now()->subMonth();
-//                Log::info('check last month name is ok', [
-//                    'last month' => $lastMonth,
-//                    'last month->month' => $lastMonth->month,
-//                    'last month->year' => $lastMonth->year,
-//                ]);
-//                $query->whereMonth('inv_date', $lastMonth->month)
-//                    ->whereYear('inv_date', $lastMonth->year);
-//                Log::info('last month data check', [
-//                    'info' => $query->get()
-//                ]);
-//            }
-//        }
-        if (!$showAll) {
-            if ($month && $year) {
-                $query->whereHas('invoicedReservation.reservation', function($q) use ($month, $year) {
-                    $q->whereMonth('check_out', $month)
-                        ->whereYear('check_out', $year);
-                });
-            } else {
-                // Default: last month dynamically
-                $lastMonth = now()->subMonth();
-                $query->whereHas('invoicedReservation.reservation', function($q) use ($lastMonth) {
-                    $q->whereMonth('check_out', $lastMonth->month)
-                        ->whereYear('check_out', $lastMonth->year);
-                });
-            }
+        if ($showAll){
+            $invoices = $query->get();
+        }elseif ($showAll === false && ($month && $year)){
+            $query->whereHas('invoicedReservation.reservation', function($q) use ($month, $year) {
+                $q->whereMonth('check_out', $month)
+                    ->whereYear('check_out', $year);
+            });
+            $invoices = $query->get();
+        }elseif($showAll === false && (!$month && !$year)){
+            $lastMonth = now()->subMonth();
+            $query->whereHas('invoicedReservation.reservation', function($q) use ($lastMonth) {
+                $q->whereMonth('check_out', $lastMonth->month)
+                    ->whereYear('check_out', $lastMonth->year);
+            });
+            $invoices = $query->get();
         }
-
-
-        $invoices = $query->get();
-        Log::info('invoices', [
-            'info' => $invoices
-        ]);
-
         // --- Mapping ---
         $result = $invoices->map(function ($invoice) {
             $reservation = $invoice->invoicedReservation?->reservation;
@@ -297,30 +161,20 @@ class HotelInvoiceController extends Controller
                 })->values(),
             ];
         });
-        Log::info('result', [
-            'info' => $result
-        ]);
         // --- Group by checkout month ---
         $grouped = $result->groupBy(function ($invoice) {
             return optional($invoice['reservation'])['check_out']
-                ? \Carbon\Carbon::parse($invoice['reservation']['check_out'])->format('Y-m')
+                ? Carbon::parse($invoice['reservation']['check_out'])->format('Y-m')
                 : 'Unknown';
         });
-        Log::info('gropped data', [
-            'info' => $grouped
-        ]);
         // --- Sorting ---
         if ($showAll) {
-            $grouped = $grouped->sortKeysDesc(); // July 2025 → June 2025
+            $grouped = $grouped->sortKeysDesc();
         } else {
-            $grouped = $grouped->sortKeys();     // Ascending for filtered/default
+            $grouped = $grouped->sortKeys();
         }
 
         $hotelName = $result->first()['hotelName'] ?? null;
-        Log::info('hotelname', [
-            'info' => $hotelName
-        ]);
-
         $months = $grouped->map(function ($items, $ym) {
             return [
                 'month' => $ym !== 'Unknown'
@@ -329,14 +183,8 @@ class HotelInvoiceController extends Controller
                 'data' => $items->values()
             ];
         })->values();
-        Log::info('months', [
-            'info' => $months
-        ]);
-        Log::info('final response', [
-            'hotel' => $hotelName,
-            'data' => $months
-        ]);
         $final = [
+            'success' => $hotelName !== null,
             'hotel' => $hotelName,
             'data' => $months
         ];
