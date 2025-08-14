@@ -148,7 +148,7 @@ const handleCreate=(item)=>{
                 :headers="tableHeaders"
                 :items="sortedUserData"
                 :search-value="searchValue"
-                :rows-per-page="100"
+                :rows-per-page="200"
                 table-class-name="customize-table"
                 show-index
             >
@@ -246,5 +246,11 @@ const handleCreate=(item)=>{
     word-wrap: break-word;
     word-break: break-word;
     white-space: normal;
+}
+::v-deep(.vue3-easy-data-table__main) {
+    min-height: auto !important;
+}
+::v-deep(.vue3-easy-data-table__message){
+    font-size: 16px !important;
 }
 </style>
