@@ -1,12 +1,13 @@
 <script setup>
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 import {usePage, Link, useForm, router} from "@inertiajs/vue3";
-import {computed, ref} from 'vue';
+import {computed, ref, watch} from 'vue';
 import Swal from "sweetalert2";
 import dayjs from 'dayjs';
 import { route } from 'ziggy-js';
-const id = route().params.id;
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import {debounce} from "lodash-es";
+const id = route().params.id;
 dayjs.extend(customParseFormat);
 const invoicesByHotel = ref(usePage().props.invoicesByHotel);
 const invoicesDataArray = computed(() => invoicesByHotel.value.success);
@@ -52,25 +53,50 @@ const handleViewInvoices=(id)=>{
 }
 
 const filters = ref({
-    month: '',
-    year: '',
+    month: null,
+    year: null,
     showAll: false
 });
 const years = [2021,2022, 2023, 2024, 2025, 2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
 
-const applyFilters = () => {
-    console.log(filters.value);
-    router.get(`/dashboard/hotel-invoice/all-invoices/${id}`, {
-        month: filters.value.month,
-        year: filters.value.year,
-        showAll: filters.value.showAll
-    }, {
-        preserveState: true,
-        onSuccess: () => {
-            invoicesByHotel.value = usePage().props.invoicesByHotel;
+// const applyFilters = () => {
+//     console.log(filters.value);
+//     router.get(`/dashboard/hotel-invoice/all-invoices/${id}`, {
+//         month: filters.value.month,
+//         year: filters.value.year,
+//         showAll: filters.value.showAll
+//     }, {
+//         preserveState: true,
+//         onSuccess: () => {
+//             invoicesByHotel.value = usePage().props.invoicesByHotel;
+//         }
+//     });
+// };
+const fetchInvoices = debounce(() => {
+    router.get(
+        `/dashboard/hotel-invoice/all-invoices/${id}`,
+        {
+            search: searchValue.value,
+            month: filters.value.month,
+            year: filters.value.year,
+            showAll: filters.value.showAll,
+        },
+        {
+            preserveState: true,
+            replace: true,
+            onSuccess: () => {
+                invoicesByHotel.value = usePage().props.invoicesByHotel;
+            },
         }
-    });
-};
+    );
+}, 400);
+watch(searchValue,() => {
+    fetchInvoices();
+});
+
+watch(filters, () => {
+    fetchInvoices();
+}, { deep: true });
 
 </script>
 
@@ -107,12 +133,12 @@ const applyFilters = () => {
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
                         </svg>
                     </div>
-                    <input type="search" v-model="searchValue" id="default-search" class="block w-full p-4 ps-10 text-sm text-gray-900  rounded-lg bg-white border-none focus:ring-none focus:border-none" placeholder="Search anything..." />
+                    <input type="search" v-model="searchValue" id="default-search" class="block w-full p-4 ps-10 text-sm text-gray-900  rounded-lg bg-white border-none focus:ring-none focus:border-none" placeholder="Search anything ..." />
                 </div>
                 <div class="flex gap-2 px-4 py-2 w-full shadow-md bg-white rounded-lg items-center justify-between">
                     <!-- Month Filter -->
                     <select v-model="filters.month" class=" rounded outline-none border-none focus:outline-none focus:border-none py-1.5">
-                        <option value="">Select Month</option>
+                        <option value=null>Select Month</option>
                         <option v-for="m in 12" :value="String(m).padStart(2, '0')">
                             {{ dayjs(`2025-${String(m).padStart(2, '0')}-01`).format('MMMM') }}
                         </option>
@@ -120,7 +146,7 @@ const applyFilters = () => {
 
                     <!-- Year Filter -->
                     <select v-model="filters.year" class=" rounded outline-none border-none focus:outline-none focus:border-none py-1.5">
-                        <option value="">Select Year</option>
+                        <option value=null>Select Year</option>
                         <option v-for="y in years" :value="y">{{ y }}</option>
                     </select>
 
@@ -130,12 +156,12 @@ const applyFilters = () => {
                         Show All
                     </label>
 
-                    <!-- Apply Button -->
-                    <div>
-                        <button  @click="applyFilters" type="button" class=" text-white  rounded text-sm px-4 py-1 bg-cyan-950 hover:bg-blue-700">
-                            Apply
-                        </button>
-                    </div>
+<!--                    &lt;!&ndash; Apply Button &ndash;&gt;-->
+<!--                    <div>-->
+<!--                        <button  @click="applyFilters" type="button" class=" text-white  rounded text-sm px-4 py-1 bg-cyan-950 hover:bg-blue-700">-->
+<!--                            Apply-->
+<!--                        </button>-->
+<!--                    </div>-->
                 </div>
 
             </div>
