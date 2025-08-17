@@ -277,7 +277,8 @@ class HotelInvoiceController extends Controller
                 'rate',
                 'currency',
                 'source',
-                'paymentMethod'
+                'paymentMethod',
+                'status'
             ])
             ->get()
             ->filter(function ($reservation) {
@@ -346,8 +347,10 @@ class HotelInvoiceController extends Controller
                 return !empty($differences);
             })
             ->values();
-
-        return response()->json($reservations);
+        return Inertia::render('UpdateHotelInvoice', [
+            'reservations' => $reservations
+        ]);
+//        return response()->json($reservations);
     }
 
 

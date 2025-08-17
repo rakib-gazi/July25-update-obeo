@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 const userData = ref(usePage().props.reservations);
+console.log(userData.value);
 const tableHeaders = [
     { text: 'Booking No', value: 'reservation_no' },
     { text: 'C/IN', value: 'check_in' },
@@ -14,7 +15,7 @@ const tableHeaders = [
     { text: 'Name', value: 'guest_name' },
     { text: 'Hotel', value: 'hotel.hotelName' },
     { text: 'Total Price',  value: 'total_price_bdt' },
-    { text: 'Status',  value: 'reservation_status.status' },
+    { text: 'Status',  value: 'status.status' },
     { text: 'Actions', value: 'actions' },
 ];
 function getTotalPriceInBDT(rooms, rate) {
@@ -69,8 +70,9 @@ const fetchUsers = () => {
         }
     });
 };
-const handleCreate=(item)=>{
+const handleUpdate=(item)=>{
     reservationData.reservation_id =  item.id;
+    console.log(reservationData.reservation_id)
     reservationData.hotel_id = item.hotel.id;
     reservationData.total_amount = getTotalPriceInBDT(item.rooms,item.rate.rate);
     reservationData.total_advance = item.total_advance;
@@ -90,8 +92,8 @@ const handleCreate=(item)=>{
         ...room,
         currency_id: room.currency?.id || null
     }));
-    console.log(reservationData)
-    console.log(item);
+    console.log('reservaton data', reservationData)
+    console.log('item',item);
     reservationData.post('/dashboard/hotel-invoice/create-invoice', {
         onSuccess: () => {
             Swal.fire({
@@ -218,8 +220,8 @@ const handleCreate=(item)=>{
                 </template>
                 <template #item-actions="item">
                     <div class="flex gap-2">
-                        <button @click="handleCreate(item)"  type="button" class=" text-white  rounded text-sm px-3 py-1 bg-cyan-950 hover:bg-blue-700">
-                            Create
+                        <button @click="handleUpdate(item)" type="button" class=" text-white  rounded text-sm px-3 py-1 bg-green-600 hover:bg-blue-700">
+                            Update
                         </button>
                     </div>
                 </template>
