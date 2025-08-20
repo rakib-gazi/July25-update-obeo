@@ -225,10 +225,10 @@ class HotelInvoiceController extends Controller
             'hotel' => $hotelName,
             'data' => $months
         ];
-
-        return Inertia::render('InvoicesByHotel', [
-            'invoicesByHotel' => $final,
-        ]);
+        return  response() ->json($final);
+//        return Inertia::render('InvoicesByHotel', [
+//            'invoicesByHotel' => $final,
+//        ]);
     }
 
     public function getInvoiceEligibleForUpdate1()
@@ -271,18 +271,25 @@ class HotelInvoiceController extends Controller
             ->whereHas('invoicedReservation') // must already have invoice
             ->with([
                 'invoicedReservation.hotelInvoice.hotelInvoiceRooms',
-                'rooms',
-                'children',
-                'hotel',
-                'rate',
-                'currency',
-                'source',
-                'paymentMethod',
-                'status'
+                'user:id,fullName',
+                'reservation_status:id,status',
+                'hotel:id,hotelName,commissionType,expediaCollectsCommission,hotelCollectsCommission',
+                'rate:id,rate',
+                'currency:id,currency',
+                'source:id,source',
+                'paymentMethod:id,payment',
+                'children:id,age',
+                'rooms' => function ($query) {
+                    $query->select('rooms.id', 'name', 'total_room', 'total_night', 'total_price', 'currency_id')
+                        ->with('currency:id,currency');
+                }
             ])
             ->get()
             ->filter(function ($reservation) {
                 $invoice = $reservation->invoicedReservation->hotelInvoice ?? null;
+                            Log::info('Invoice information', [
+                'invoice' => $invoice
+            ]);
                 if (!$invoice) return false;
 
                 $differences = [];
@@ -347,10 +354,10 @@ class HotelInvoiceController extends Controller
                 return !empty($differences);
             })
             ->values();
-        return Inertia::render('UpdateHotelInvoice', [
-            'reservations' => $reservations
-        ]);
-//        return response()->json($reservations);
+//        return Inertia::render('UpdateHotelInvoice', [
+//            'reservations' => $reservations
+//        ]);
+        return response()->json($reservations);
     }
 
 

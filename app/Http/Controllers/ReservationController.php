@@ -816,7 +816,7 @@ class ReservationController extends Controller
 
                 return $reservation;
             });
-       //return response()->json(['reservations' => $reservations]);
+//       return response()->json(['reservations' => $reservations]);
         return inertia('CreateHotelInvoice', [
             'reservations' => $reservations,
         ]);
