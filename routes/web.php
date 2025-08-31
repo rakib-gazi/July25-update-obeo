@@ -21,9 +21,7 @@ Route::get('/logout', [UserController::class,'logout'])->name('logout');
 //Route::get('/phpinfo', function () {
 //    phpinfo();
 //});
-//Route::get('/reservationcopy', function () {
-//    return view('pdf.reservationcopy');
-//});
+Route::get('/reservationcopy', [HotelInvoiceController::class, 'hotelInvoicePreview1']);
 
 
 
@@ -91,9 +89,6 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::put('/dashboard/settings/update-reservation-status/{id}',[SettingsController::class,'updateReservationStatus'])->name('updateReservationStatus');
         Route::get('/dashboard/settings/delete-reservation-status/{id}', [SettingsController::class,'deleteReservationStatus'])->name('deleteReservationStatus');
 
-        // pdf download route
-        Route::post('/reservation/pdf', [ReservationController::class, 'download'])->name('reservation.pdf');
-
 
         // Hotel invoice Route
         Route::get('/dashboard/hotel-invoice',[HotelInvoiceController::class, 'hotelInvoice'])->name('hotelInvoiceMainPage');
@@ -103,6 +98,8 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::get('/dashboard/hotel-invoice/all-invoices/{id}',[HotelInvoiceController::class,'getHotelInvoicesByHotel'])->name('getHotelInvoicesByHotel');
         Route::get('/dashboard/hotel-invoice/eligible-invoices-for-update',[HotelInvoiceController::class,'getInvoiceEligibleForUpdate'])->name('getInvoiceEligibleForUpdate');
 
-
+        // pdf download route
+        Route::post('/reservation/pdf', [ReservationController::class, 'download'])->name('reservation.pdf');
+        Route::post('/hotel-invoice/pdf', [HotelInvoiceController::class, 'hotelInvoiceDownload'])->name('hotelInvoice.pdf');
 
     });

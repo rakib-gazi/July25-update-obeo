@@ -10,8 +10,9 @@ import {debounce} from "lodash-es";
 const id = route().params.id;
 dayjs.extend(customParseFormat);
 const invoicesByHotel = ref(usePage().props.invoicesByHotel);
+const payments = ref(usePage().props.payments);
+console.log(payments);
 const invoicesDataArray = computed(() => invoicesByHotel.value.success);
-console.log(invoicesDataArray);
 const tableHeaders = [
     { text: 'Invoice No', value: 'inv_no' },
     { text: 'Invoice Date', value: 'inv_date' },
@@ -59,19 +60,6 @@ const filters = ref({
 });
 const years = [2021,2022, 2023, 2024, 2025, 2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
 
-// const applyFilters = () => {
-//     console.log(filters.value);
-//     router.get(`/dashboard/hotel-invoice/all-invoices/${id}`, {
-//         month: filters.value.month,
-//         year: filters.value.year,
-//         showAll: filters.value.showAll
-//     }, {
-//         preserveState: true,
-//         onSuccess: () => {
-//             invoicesByHotel.value = usePage().props.invoicesByHotel;
-//         }
-//     });
-// };
 const fetchInvoices = debounce(() => {
     router.get(
         `/dashboard/hotel-invoice/all-invoices/${id}`,
@@ -97,7 +85,60 @@ watch(searchValue,() => {
 watch(filters, () => {
     fetchInvoices();
 }, { deep: true });
+const monthSelections = ref({});
+watch(() => invoicesByHotel.value, (val) => {
+    if (val?.data) {
+        val.data.forEach(month => {
+            if (!(month.month in monthSelections.value)) {
+                monthSelections.value[month.month] = "" // default = Please Select
+            }
+        })
+    }
+}, { immediate: true })
 
+const handleInvoiceDownload = async (monthData) => {
+    console.log(monthData);
+    const downloadType = monthSelections.value[monthData.month] || "";
+    const firstInvoice = monthData.data[0];
+    const hotel = firstInvoice?.hotelName || firstInvoice?.hotel?.hotelName || "";
+    const hotelAddress = firstInvoice?.hotelAddress || firstInvoice?.hotel?.hotelAddress || "";
+    try {
+        const response = await fetch(route('hotelInvoice.pdf'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({
+                month: monthData.month,
+                downloadType:downloadType,
+                invoices: monthData.data,
+                hotel,
+                hotelAddress,
+            }),
+
+        });
+
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch PDF');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${monthData.month} invoice.pdf`; // or dynamically set name from response headers
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Download failed:', error);
+    }
+};
 </script>
 
 <template>
@@ -155,13 +196,6 @@ watch(filters, () => {
                         <input type="checkbox" v-model="filters.showAll" />
                         Show All
                     </label>
-
-<!--                    &lt;!&ndash; Apply Button &ndash;&gt;-->
-<!--                    <div>-->
-<!--                        <button  @click="applyFilters" type="button" class=" text-white  rounded text-sm px-4 py-1 bg-cyan-950 hover:bg-blue-700">-->
-<!--                            Apply-->
-<!--                        </button>-->
-<!--                    </div>-->
                 </div>
 
             </div>
@@ -171,8 +205,31 @@ watch(filters, () => {
                 </div>
             </div>
             <div v-else v-for="monthData in invoicesByHotel.data" :key="monthData.month" class="mb-4">
-                <div class="bg-white shadow-md px-4 py-2 rounded-t-lg">
+                <div class="bg-white shadow-md px-4 py-2 rounded-t-lg flex items-center justify-between">
                     <h1 class="text-cyan-950 text-xl font-bold py-0.5">{{monthData.month}}</h1>
+                    <div>
+                        <div class="text-sm font-semibold">
+                            <form @submit.prevent="handleInvoiceDownload(monthData)" class="flex items-center gap-2  justify-center">
+                                <select v-model="monthSelections[monthData.month]" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    <option disabled value="">Please Select</option>
+                                    <option value="Combined">Combined</option>
+                                    <option
+                                        v-for="payment in payments"
+                                        :key="payment.id"
+                                        :value="payment.payment"
+                                    >
+                                        {{ payment.payment }}
+                                    </option>
+                                </select>
+                                <button type="submit" class=" px-4 py-2 bg-cyan-950  text-white rounded flex justify-center items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                    </svg>
+                                    Download
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
                 <EasyDataTable
                     :headers="tableHeaders"
@@ -183,9 +240,12 @@ watch(filters, () => {
                 >
                     <template #item-actions="item">
                         <div class="flex gap-2">
-                            <Link  :href="`/dashboard/hotel-invoice/all-invoices/${item.id}`" type="button" class=" text-white  rounded text-sm px-3 py-1 bg-cyan-950 hover:bg-blue-700">
-                                View Invoices
-                            </Link>
+                            <button type="submit" class=" px-3 py-1 bg-cyan-950  text-white rounded flex justify-center items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                Single Invoice
+                            </button>
                         </div>
                     </template>
                 </EasyDataTable>

@@ -134,7 +134,7 @@ const handleUpdate=(item)=>{
 
             <div class="flex justify-between items-center gap-2 mb-2">
                 <div class="bg-white shadow-md px-4 py-2 rounded-lg w-1/2">
-                    <h1 class="text-cyan-950 text-2xl font-bold py-0.5">Create Invoice</h1>
+                    <h1 class="text-cyan-950 text-2xl font-bold py-0.5">Update Invoice</h1>
                 </div>
                 <div class="relative  shadow-md w-1/2">
                     <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">

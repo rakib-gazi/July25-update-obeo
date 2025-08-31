@@ -14,7 +14,11 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\View;
 use Inertia\Inertia;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
+use Mpdf\Mpdf;
 
 class HotelInvoiceController extends Controller
 {
@@ -92,14 +96,15 @@ class HotelInvoiceController extends Controller
     }
     public function getHotelInvoicesByHotel(Request $request, $hotelId)
     {
+        $payments = PaymentMethod::get();
         $search = $request->input('search');
         $month = $request->input('month');
         $year  = $request->input('year');
         $showAll = filter_var($request->input('showAll'), FILTER_VALIDATE_BOOLEAN) ?? false;
-        log::info("Hotel Invoices by Hotel Id: $search,$month,$year,$showAll");
+//        log::info("Hotel Invoices by Hotel Id: $search,$month,$year,$showAll");
         // --- Base query with relationships ---
         $query = HotelInvoice::with([
-            'hotel:id,hotelName,hotelAddress',
+            'hotel:id,hotelName,hotelAddress,commissionType,expediaCollectsCommission,hotelCollectsCommission',
             'invoicedReservation.reservation:id,status_id,reservation_no,check_in,check_out,guest_name,rate_id,source_id,payment_method_id',
             'hotelInvoiceRooms:id,room_name,total_room,total_price,currency_id,exchange_rate,commission_type,commission_value,hotel_given_price,hotel_invoice_id'
         ])
@@ -155,6 +160,9 @@ class HotelInvoiceController extends Controller
                 'hotelName' => $invoice->hotel->hotelName ?? null,
                 'hotel_id' => $invoice->hotel->id ?? null,
                 'hotelAddress' => $invoice->hotel->hotelAddress ?? null,
+                'commissionType' => $invoice->hotel->commissionType ?? null,
+                'hotelCollectsCommission' => $invoice->hotel->hotelCollectsCommission ?? null,
+                'expediaCollectsCommission' => $invoice->hotel->expediaCollectsCommission ?? null,
 
                 // Top-level reservation info for easier search
                 'reservation_id' => $reservation?->id,
@@ -225,46 +233,16 @@ class HotelInvoiceController extends Controller
             'hotel' => $hotelName,
             'data' => $months
         ];
-        return  response() ->json($final);
-//        return Inertia::render('InvoicesByHotel', [
-//            'invoicesByHotel' => $final,
-//        ]);
-    }
-
-    public function getInvoiceEligibleForUpdate1()
-    {
-        $checkedInStatusId = ReservationStatus::where('status', 'Checked In')->value('id');
-
-        $reservations = Reservation::where('status_id', $checkedInStatusId)
-            ->whereHas('invoicedReservation') // only reservations already invoiced
-            ->with([
-                'invoicedReservation.hotelInvoice',
-                'rooms',
-                'children',
-                'hotel',
-                'rate',
-                'currency'
-            ])
-            ->get()
-            ->filter(function ($reservation) {
-                $invoice = $reservation->invoicedReservation->hotelInvoice ?? null;
-                if (!$invoice) return false;
-
-                // Compare total price of rooms or other fields
-                $currentTotal = $reservation->rooms->sum('total_price');
-                $invoiceTotal = $invoice->total_amount;
-
-                return $currentTotal != $invoiceTotal;
-            })
-            ->values();
-            return response() -> json($reservations);
-//        return Inertia::render('UpdateInvoiceEligible', [
-//            'reservations' => $reservations
-//        ]);
+//        return  response() ->json($final);
+        return Inertia::render('InvoicesByHotel', [
+            'invoicesByHotel' => $final,
+            'payments'  => $payments
+        ]);
     }
 
     public function getInvoiceEligibleForUpdate()
     {
+
         $checkedInStatusId = ReservationStatus::where('status', 'Checked In')->value('id');
 
         $reservations = Reservation::where('status_id', $checkedInStatusId)
@@ -354,11 +332,101 @@ class HotelInvoiceController extends Controller
                 return !empty($differences);
             })
             ->values();
-//        return Inertia::render('UpdateHotelInvoice', [
-//            'reservations' => $reservations
-//        ]);
-        return response()->json($reservations);
+        return Inertia::render('UpdateHotelInvoice', [
+            'reservations' => $reservations,
+
+        ]);
+//        return response()->json($reservations);
     }
+
+    public function hotelInvoiceDownload(Request $request)
+    {
+        Log::info("invoice data",[
+            'month' => $request->input('month'),
+            'downloadType' => $request->input('downloadType'),
+            'invoices' => $request->input('invoices'),
+        ]);
+        $today = now();
+        $part1 = substr($today->format('Y'), 0, 2);
+        $part2 = $today->format('d');
+        $part3 = substr($today->format('Y'), 2, 2);
+        $part4 = $today->format('m');
+        $invoiceNo = $part3 . $part2 . $part1 . $part4;
+        $formattedDate = $today->format('d F Y');
+        $data = $request->only([
+            'hotel',
+            'hotelAddress',
+            'commissionType',
+            'expediaCollectsCommission',
+            'hotelCollectsCommission',
+            'month',
+            'downloadType',
+            'invoices',
+        ]);
+        $data['invoiceNo'] = $invoiceNo;
+        $data['invoiceDate'] = $formattedDate;
+        Log::info("from data variable",[
+            'data' => $data
+        ]);
+        try {
+            // 1. Render Blade view to HTML
+            $html = View::make('pdf.invoiceCopy', $data)->render();
+
+            // 2. Configure custom font (Nunito)
+            $defaultConfig = (new ConfigVariables())->getDefaults();
+            $fontDirs = $defaultConfig['fontDir'];
+
+            $defaultFontConfig = (new FontVariables())->getDefaults();
+            $fontData = $defaultFontConfig['fontdata'];
+
+            $mpdf = new Mpdf([
+                'mode' => 'utf-8',
+                'format' => 'A4',
+                'margin_left' => 10,
+                'margin_right' => 10,
+                'margin_top' => 10,
+                'margin_bottom' => 10,
+                'fontDir' => array_merge($fontDirs, [
+                    resource_path('fonts/Nunito'),
+                ]),
+                'fontdata' => $fontData + [
+                        'nunito' => [
+                            'R' => 'NunitoSans-Regular.ttf',
+                            '600' => 'NunitoSans-SemiBold.ttf',
+                            // Add 'I' => 'Nunito-Italic.ttf' if needed
+                        ],
+                        'nunito600' => [
+                            'R' => 'NunitoSans-SemiBold.ttf',
+                        ],
+                        'nunitoR400' => [
+                            'R' => 'NunitoSans-Regular.ttf',
+                        ],
+                    ],
+                'default_font' => 'nunito'
+            ]);
+
+            // 3. Write HTML to PDF
+            $mpdf->WriteHTML($html);
+//            $guestName = $data['guest_name'] && $data['payment_method'] ?? 'guest';
+//            $cleanGuestName = preg_replace('/[^A-Za-z0-9 _-]/', '_', $guestName);
+//            $cleanGuestName = str_replace(' ', '_', $cleanGuestName);
+//
+//            $fileName = $cleanGuestName . ' .pdf';
+
+            return response($mpdf->Output('', 'S'), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="Invoice Data"',
+            ]);
+
+
+        } catch (Exception $e) {
+            Log::error('PDF generation failed', ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'PDF generation failed'], 500);
+        }
+    }
+
+
+
 
 
 

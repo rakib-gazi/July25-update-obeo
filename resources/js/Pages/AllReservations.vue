@@ -204,17 +204,6 @@ const handleEdit = (item) => {
     selectedCurrency.value = formCurrencies.value.find(currency => currency.id === item.currency?.id) || null;
     selectedSource.value = formSources.value.find(source => source.id === item.source.id) || null;
     selectedPayment.value = formPayments.value.find(payment => payment.id === item.payment_method.id) || null;
-
-    // childAges.value = item.children?.map(child => ({
-    //     id: child.id,
-    //     age: child.age.toString()
-    // })) || [];
-    // childAges.value = (item.children && item.children.length > 0)
-    //     ? item.children.map(child => ({
-    //         id: child.id,
-    //         age: child.age.toString()
-    //     }))
-    //     : [{ id: null, age: '' }];
     childAges.value = (item.children && item.children.length > 0)
         ? item.children.map(child => ({
             id: child.id,
