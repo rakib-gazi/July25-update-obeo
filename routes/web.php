@@ -102,4 +102,10 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::post('/reservation/pdf', [ReservationController::class, 'download'])->name('reservation.pdf');
         Route::post('/hotel-invoice/pdf', [HotelInvoiceController::class, 'hotelInvoiceDownload'])->name('hotelInvoice.pdf');
 
+        //monthly hotel invoice adjustments  route
+        Route::get('/dashboard/hotel-invoice/invoice-adjustment',[HotelInvoiceController::class, 'getInvoiceAdjustments'])->name('getInvoiceAdjustments');
+        Route::post('/dashboard/hotel-invoice/invoice-adjustment',[HotelInvoiceController::class,'addAdjustment'])->name('addAdjustment');
+        Route::put('/dashboard/hotel-invoice/invoice-adjustment/{id}',[HotelInvoiceController::class,'updateAdjustment'])->name('updateAdjustment');
+        Route::get('/dashboard/hotel-invoice/invoice-adjustment/{id}', [HotelInvoiceController::class,'deleteAdjustment'])->name('deleteAdjustment');
+
     });

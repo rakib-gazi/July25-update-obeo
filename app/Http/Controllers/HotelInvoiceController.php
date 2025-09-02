@@ -6,14 +6,17 @@ use App\Models\Hotel;
 use App\Models\HotelInvoice;
 use App\Models\HotelInvoiceRoom;
 use App\Models\InvoicedReservation;
+use App\Models\MonthlyHotelInvoiceAdjustment;
 use App\Models\PaymentMethod;
 use App\Models\Reservation;
 use App\Models\ReservationStatus;
+use App\Models\Source;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\View;
 use Inertia\Inertia;
 use Mpdf\Config\ConfigVariables;
@@ -96,7 +99,8 @@ class HotelInvoiceController extends Controller
     }
     public function getHotelInvoicesByHotel(Request $request, $hotelId)
     {
-        $payments = PaymentMethod::get();
+        $sources = Source::get();
+        $paymentMethod = PaymentMethod::get();
         $search = $request->input('search');
         $month = $request->input('month');
         $year  = $request->input('year');
@@ -106,6 +110,8 @@ class HotelInvoiceController extends Controller
         $query = HotelInvoice::with([
             'hotel:id,hotelName,hotelAddress,commissionType,expediaCollectsCommission,hotelCollectsCommission',
             'invoicedReservation.reservation:id,status_id,reservation_no,check_in,check_out,guest_name,rate_id,source_id,payment_method_id',
+            'invoicedReservation.reservation.source:id,source',
+            'invoicedReservation.reservation.paymentMethod:id,payment',
             'hotelInvoiceRooms:id,room_name,total_room,total_price,currency_id,exchange_rate,commission_type,commission_value,hotel_given_price,hotel_invoice_id'
         ])
             ->where('hotel_id', $hotelId)
@@ -173,7 +179,9 @@ class HotelInvoiceController extends Controller
                 'check_out' => $reservation?->check_out,
                 'rate_id' => $reservation?->rate_id,
                 'source_id' => $reservation?->source_id,
+                'source' => $reservation?->source?->source,
                 'payment_method_id' => $reservation?->payment_method_id,
+                'payment_method' => $reservation?->paymentMethod?->payment,
 
                 // Nested objects (optional, can be used for detailed view)
                 'hotel' => $invoice->hotel ? [
@@ -236,7 +244,7 @@ class HotelInvoiceController extends Controller
 //        return  response() ->json($final);
         return Inertia::render('InvoicesByHotel', [
             'invoicesByHotel' => $final,
-            'payments'  => $payments
+            'sources'  => $sources
         ]);
     }
 
@@ -425,7 +433,71 @@ class HotelInvoiceController extends Controller
         }
     }
 
+    //    Hotel Invoice Adjustment
+    function getInvoiceAdjustments(Request $request)
+    {
+        $adjustments = MonthlyHotelInvoiceAdjustment::oldest()->get();
 
+        return Inertia::render('MonthlyAdjustment', [
+            'adjustments' => $adjustments
+        ]);
+    }
+    function addAdjustment(Request $request)
+    {
+        $data = $request->validate([
+            'month' => 'required|string|max:50|min:3',
+            'purpose' => 'required|string|max:100|min:3',
+            'type' => 'required|string|max:50|min:3',
+            'amount' => 'required|string|max:50|min:3',
+        ]);
+        DB::beginTransaction();
+        try {
+            MonthlyHotelInvoiceAdjustment::create($data);
+            DB::commit();
+
+            return redirect()->back();
+        } catch (Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+    function updateAdjustment(Request $request, $id)
+    {
+
+        $data = $request->validate([
+            'month' => 'required|string|max:50|min:3',
+            'purpose' => 'required|string|max:100|min:3',
+            'type' => 'required|string|max:50|min:3',
+            'amount' => 'required|string|max:50|min:3',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            MonthlyHotelInvoiceAdjustment::where('id', $id)->update($data);
+            DB::commit();
+            return redirect()->back();
+        } catch (Exception $e) {
+            DB::rollBack();
+            return Redirect::back()->withErrors($e->getMessage());
+        }
+
+    }
+    function deleteAdjustment(Request $request)
+    {
+        $id = $request->id;
+        try{
+            $deleted =  MonthlyHotelInvoiceAdjustment::where('id', $id)->delete();
+            $error = "";
+            if(!$deleted){
+                $error = "Adjustment not found or could not be deleted";
+            }
+            $data = ['message' => 'Adjustment Deleted Successfully', 'status' => true, 'error' => $error];
+            return redirect()->route('dashboard/hotel-invoice/invoice-adjustment')->with($data );
+        }
+        catch(Exception $e){
+            return Redirect::back()->withErrors($e->getMessage());
+        }
+    }
 
 
 

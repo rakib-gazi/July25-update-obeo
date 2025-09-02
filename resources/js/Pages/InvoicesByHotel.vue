@@ -10,8 +10,7 @@ import {debounce} from "lodash-es";
 const id = route().params.id;
 dayjs.extend(customParseFormat);
 const invoicesByHotel = ref(usePage().props.invoicesByHotel);
-const payments = ref(usePage().props.payments);
-console.log(payments);
+const sources = ref(usePage().props.sources);
 const invoicesDataArray = computed(() => invoicesByHotel.value.success);
 const tableHeaders = [
     { text: 'Invoice No', value: 'inv_no' },
@@ -213,20 +212,35 @@ const handleInvoiceDownload = async (monthData) => {
                                 <select v-model="monthSelections[monthData.month]" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
                                     <option disabled value="">Please Select</option>
                                     <option value="Combined">Combined</option>
+                                    <option value="expediaCollects">Expedia Collects</option>
+                                    <option value="expediaHotelCollects">Expedia Hotel Collects</option>
                                     <option
-                                        v-for="payment in payments"
-                                        :key="payment.id"
-                                        :value="payment.payment"
+                                        v-for="source in sources.filter(s => s.source !== 'Expedia')"
+                                        :key="source.id"
+                                        :value="source.source"
                                     >
-                                        {{ payment.payment }}
+                                        {{ source.source }}
                                     </option>
                                 </select>
-                                <button type="submit" class=" px-4 py-2 bg-cyan-950  text-white rounded flex justify-center items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                <button
+                                    type="submit"
+                                    :disabled="!monthSelections[monthData.month]"
+                                    :class="[
+                                        'px-4 py-2 rounded flex justify-center items-center gap-2',
+                                        monthSelections[monthData.month]
+                                            ? 'bg-cyan-950 text-white cursor-pointer hover:bg-blue-700'
+                                            : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                    ]"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke-width="1.5" stroke="currentColor" class="size-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12
+                                         16.5m0 0L7.5 12m4.5 4.5V3" />
                                     </svg>
                                     Download
                                 </button>
+
                             </form>
                         </div>
                     </div>
