@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class MonthlyHotelInvoiceAdjustment extends Model
 {
     //
-    protected  $fillable = ['month','purpose', 'type','amount'];
+    protected  $fillable = ['month','purpose', 'type','source','amount'];
     protected $hidden = ['created_at', 'updated_at',];
 }

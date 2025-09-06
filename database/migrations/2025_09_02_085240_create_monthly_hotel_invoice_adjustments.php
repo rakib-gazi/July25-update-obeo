@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('month');
             $table->string('purpose');
             $table->string('type');
+            $table->string('source');
             $table->string('amount');
             $table->timestamps();
         });

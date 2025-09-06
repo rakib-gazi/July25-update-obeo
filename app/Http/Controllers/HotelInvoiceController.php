@@ -354,6 +354,12 @@ class HotelInvoiceController extends Controller
             'downloadType' => $request->input('downloadType'),
             'invoices' => $request->input('invoices'),
         ]);
+        $requestedMonth = $request->input('month');
+        $monthKey = Carbon::createFromFormat('F Y', $requestedMonth)->format('Y-m');
+        $monthlyAdjustments = MonthlyHotelInvoiceAdjustment::where('month', $monthKey)->get();
+        Log::info("Adjustment data",[
+            'monthlyAdjustments' => $monthlyAdjustments
+        ]);
         $today = now();
         $part1 = substr($today->format('Y'), 0, 2);
         $part2 = $today->format('d');
@@ -373,6 +379,7 @@ class HotelInvoiceController extends Controller
         ]);
         $data['invoiceNo'] = $invoiceNo;
         $data['invoiceDate'] = $formattedDate;
+        $data['monthlyAdjustments'] = $monthlyAdjustments;
         Log::info("from data variable",[
             'data' => $data
         ]);
@@ -437,9 +444,10 @@ class HotelInvoiceController extends Controller
     function getInvoiceAdjustments(Request $request)
     {
         $adjustments = MonthlyHotelInvoiceAdjustment::oldest()->get();
-
+        $sources = Source::get();
         return Inertia::render('MonthlyAdjustment', [
-            'adjustments' => $adjustments
+            'adjustments' => $adjustments,
+            'sources' => $sources
         ]);
     }
     function addAdjustment(Request $request)
@@ -448,8 +456,10 @@ class HotelInvoiceController extends Controller
             'month' => 'required|string|max:50|min:3',
             'purpose' => 'required|string|max:100|min:3',
             'type' => 'required|string|max:50|min:3',
+            'source' => 'required|string|max:50|min:3',
             'amount' => 'required|string|max:50|min:3',
         ]);
+        Log::info("data", $data);
         DB::beginTransaction();
         try {
             MonthlyHotelInvoiceAdjustment::create($data);
@@ -468,6 +478,7 @@ class HotelInvoiceController extends Controller
             'month' => 'required|string|max:50|min:3',
             'purpose' => 'required|string|max:100|min:3',
             'type' => 'required|string|max:50|min:3',
+            'source' => 'required|string|max:50|min:3',
             'amount' => 'required|string|max:50|min:3',
         ]);
 

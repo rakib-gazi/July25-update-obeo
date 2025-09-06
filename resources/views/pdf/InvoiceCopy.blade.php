@@ -1,8 +1,11 @@
 @php
     use Carbon\Carbon;
+//    For Date Formating
     function formatDate($date) {
         return Carbon::parse($date)->format('d M Y'); // e.g. 09 July 2025
     }
+
+//    for image print
     function imgToBase64($path) {
         if (file_exists($path)) {
             $type = pathinfo($path, PATHINFO_EXTENSION); // e.g. png, jpg
@@ -12,10 +15,10 @@
         }
         return '';
     }
-
     $logoData = imgToBase64(public_path('images/obeologo.png'));
 
-   // Make sure $invoices is an array
+
+    // Make sure $invoices is an array
 if (!isset($invoices)) {
     $invoices = [];
 } elseif (is_string($invoices)) {
@@ -29,12 +32,25 @@ $downloadType = $downloadType ?? '';
 $hotelCollectsCommission = $hotelCollectsCommission ?? 0;
 $expediaCollectsCommission = $expediaCollectsCommission ?? 0;
 
+
+// Ensure adjustments exist
+if (!isset($monthlyAdjustments)) {
+    $monthlyAdjustments = collect();
+} elseif (is_array($monthlyAdjustments)) {
+    $monthlyAdjustments = collect($monthlyAdjustments);
+}
+
+
+
 // Booking.com hotel collects section
 $bookingInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'] ?? '') === 'Booking.com' &&
         ($inv['payment_method'] ?? '') === 'Hotel Collects')->values();
 
 $grandTotal = $bookingInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0));
 $grandCommission = $bookingInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0) * ((float)($inv['hotelCollectsCommission'] ?? $hotelCollectsCommission)) / 100);
+$bookingComHotelCollectsCommission = optional($bookingInvoices->first())['hotelCollectsCommission'] ?? $hotelCollectsCommission;
+
+
 
 //Expedia Hotel collects Section
 $expediaInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'] ?? '') === 'Expedia' &&
@@ -42,6 +58,8 @@ $expediaInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'] ?? '')
 
 $expediaTotal = $expediaInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0));
 $expediaCommission = $expediaInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0) * ((float)($inv['hotelCollectsCommission'] ?? $hotelCollectsCommission)) / 100);
+$expediaHotelCollectsCommission = optional($expediaInvoices->first())['hotelCollectsCommission'] ?? $hotelCollectsCommission;
+
 
 //Expedia Expedia-collects Section
 $expediaCollectsInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'] ?? '') === 'Expedia' &&
@@ -49,6 +67,58 @@ $expediaCollectsInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'
 
 $expediaCollectsTotal = $expediaCollectsInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0));
 $expediaCollectsCommission = $expediaCollectsInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0) * ((float)($inv['expediaCollectsCommission'] ?? $expediaCollectsCommission)) / 100);
+$expediaExpediaCollectsCommission = optional($expediaCollectsInvoices->first())['expediaCollectsCommission'] ?? $expediaCollectsCommission;
+
+//booking.com calculation
+$finalGrandTotal = 0;
+
+    if ($downloadType === "Booking.com" && $bookingInvoices->isNotEmpty()) {
+        $finalGrandTotal = $grandCommission;
+
+        foreach ($monthlyAdjustments as $adjustment) {
+            if ($adjustment->source === "Booking.com") {
+                if ($adjustment->type === "Debit") {
+                    $finalGrandTotal -= $adjustment->amount;
+                } else {
+                    $finalGrandTotal += $adjustment->amount;
+                }
+            }
+        }
+    }
+
+
+//Expedia hotel collects calculation
+$expediaFinalGrandTotal = 0;
+
+    if ($downloadType === "expediaHotelCollects" && $expediaInvoices->isNotEmpty()) {
+        $expediaFinalGrandTotal = $expediaCommission;
+
+        foreach ($monthlyAdjustments as $adjustment) {
+            if ($adjustment->source === "expediaHotelCollects") {
+                if ($adjustment->type === "Debit") {
+                    $expediaFinalGrandTotal -= $adjustment->amount;
+                } else {
+                    $expediaFinalGrandTotal += $adjustment->amount;
+                }
+            }
+        }
+    }
+//Expedia expedia collects calculation
+$expediaCollectsFinalGrandTotal = 0;
+
+    if ($downloadType === "expediaCollects" && $expediaCollectsInvoices->isNotEmpty()) {
+        $expediaCollectsFinalGrandTotal = $expediaCollectsCommission;
+
+        foreach ($monthlyAdjustments as $adjustment) {
+            if ($adjustment->source === "expediaCollects") {
+                if ($adjustment->type === "Debit") {
+                    $expediaCollectsFinalGrandTotal -= $adjustment->amount;
+                } else {
+                    $expediaCollectsFinalGrandTotal += $adjustment->amount;
+                }
+            }
+        }
+    }
 
 @endphp
 <!DOCTYPE html>
@@ -173,9 +243,12 @@ $expediaCollectsCommission = $expediaCollectsInvoices->sum(fn($inv) => (float)($
                                         </tr>
                                         <tr>
                                             <td style=" padding: 0; font-size: 16px; font-family:'nunito600'; ">Amount Due:</td>
-                                            <td style=" padding: 0; font-size: 14px; font-family:'nunito600'; ">
-                                                10,000.00 TK
-                                            </td>
+                                            @if($downloadType === "Booking.com" && $bookingInvoices->isNotEmpty())
+                                                <td style=" padding: 0; font-size: 14px; font-family:'nunito600'; ">  {{number_format($finalGrandTotal, 2)}} </td>
+                                            @elseif($downloadType === "expediaHotelCollects" && $bookingInvoices->isNotEmpty())
+                                                <td style=" padding: 0; font-size: 14px; font-family:'nunito600'; ">  {{number_format($expediaFinalGrandTotal, 2)}} </td>
+                                            @endif
+
                                         </tr>
                                     </table>
                                 </td>
@@ -242,6 +315,67 @@ $expediaCollectsCommission = $expediaCollectsInvoices->sum(fn($inv) => (float)($
                     </div>
 
                 </div>
+                <div class="card">
+                    @php
+                        // start with commission as base grand total
+                        $finalGrandTotal = $grandCommission;
+                    @endphp
+                    <div class="section-title">Invoice Summary</div>
+                    <div style="width: 100%; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        border-collapse: collapse; ">
+                        <div style="padding: 16px;">
+                            <table class="guest-table" style="border-spacing: 0 12px;">
+                                <thead style="margin: 0 0 12px 0;">
+                                <tr>
+                                    <th style="color:#847662; width: 4%;  font-size:14px; text-align: left; padding-bottom:12px;">SN</th>
+                                    <th style="color:#847662; width: 26%; font-size:14px; text-align: left; padding-bottom:12px;">Description</th>
+                                    <th style="color:#847662; width: 15%; font-size:14px; text-align: left; padding-bottom:12px;">Debit / Credit</th>
+                                    <th style="color:#847662; width: 15%; font-size:14px;  padding-bottom:12px; text-align: right;">Amount (TK)</th>
+                                    <th style="color:#847662; width: 20%; font-size:14px;  padding-bottom:12px; text-align: right;">Total (TK)</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">01</td>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">Booking.com Commission  ({{ $bookingComHotelCollectsCommission }}%)</td>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">Credit</td>
+                                    <td class="nunitoR400" style="  text-align: right; font-size:14px;">{{ number_format($grandCommission, 2) }}</td>
+{{--                                    Grand Total--}}
+                                    <td class="nunitoR400" style="  text-align: right; font-size:14px;">{{ number_format($finalGrandTotal, 2) }}</td>
+                                </tr>
+                                @foreach($monthlyAdjustments as $adjustment)
+                                    @if($adjustment->source === "Booking.com")
+                                        @php
+                                            // update running total
+                                            if ($adjustment->type === "Debit") {
+                                                $finalGrandTotal -= $adjustment->amount;
+                                            } else {
+                                                $finalGrandTotal += $adjustment->amount;
+                                            }
+                                        @endphp
+                                        <tr>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ sprintf('%02d', $loop->iteration + 1) }}</td>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ $adjustment->purpose }}</td>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ $adjustment->type }}</td>
+                                            <td class="nunitoR400" style="text-align: right; font-size:14px;">{{ number_format($adjustment->amount, 2) }}</td>
+                                            <td class="nunitoR400" style="text-align: right; font-size:14px;">{{ number_format($finalGrandTotal, 2) }}</td>
+                                        </tr>
+                                    @endif
+                                @endforeach
+                                        <tr>
+                                            <td colspan="4" class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
+                                                Total Due
+                                            </td>
+                                            <td class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
+                                                {{ number_format($finalGrandTotal, 2) }}
+                                            </td>
+                                        </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
             @endif
             <!-- Expedia hotel collects guest info -->
             @if ($downloadType === "expediaHotelCollects" && $expediaInvoices->isNotEmpty())
@@ -295,6 +429,66 @@ $expediaCollectsCommission = $expediaCollectsInvoices->sum(fn($inv) => (float)($
                                             {{ number_format($expediaCommission, 2) }}
                                         </td>
                                     </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    @php
+                        // start with commission as base grand total
+                        $expediaFinalGrandTotal = $expediaCommission;
+                    @endphp
+                    <div class="section-title">Invoice Summary</div>
+                    <div style="width: 100%; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        border-collapse: collapse; ">
+                        <div style="padding: 16px;">
+                            <table class="guest-table" style="border-spacing: 0 12px;">
+                                <thead style="margin: 0 0 12px 0;">
+                                <tr>
+                                    <th style="color:#847662; width: 4%;  font-size:14px; text-align: left; padding-bottom:12px;">SN</th>
+                                    <th style="color:#847662; width: 26%; font-size:14px; text-align: left; padding-bottom:12px;">Description</th>
+                                    <th style="color:#847662; width: 15%; font-size:14px; text-align: left; padding-bottom:12px;">Debit / Credit</th>
+                                    <th style="color:#847662; width: 15%; font-size:14px;  padding-bottom:12px; text-align: right;">Amount (TK)</th>
+                                    <th style="color:#847662; width: 20%; font-size:14px;  padding-bottom:12px; text-align: right;">Total (TK)</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">01</td>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">Expedia Hotel collects Commission  ({{ $expediaHotelCollectsCommission }}%)</td>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">Credit</td>
+                                    <td class="nunitoR400" style="  text-align: right; font-size:14px;">{{ number_format($expediaCommission, 2) }}</td>
+                                    {{--                                    Grand Total--}}
+                                    <td class="nunitoR400" style="  text-align: right; font-size:14px;">{{ number_format($expediaFinalGrandTotal, 2) }}</td>
+                                </tr>
+                                @foreach($monthlyAdjustments as $adjustment)
+                                    @if($adjustment->source === "expediaHotelCollects")
+                                        @php
+                                            // update running total
+                                            if ($adjustment->type === "Debit") {
+                                                $expediaFinalGrandTotal -= $adjustment->amount;
+                                            } else {
+                                                $expediaFinalGrandTotal += $adjustment->amount;
+                                            }
+                                        @endphp
+                                        <tr>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ sprintf('%02d', $loop->iteration + 1) }}</td>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ $adjustment->purpose }}</td>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ $adjustment->type }}</td>
+                                            <td class="nunitoR400" style="text-align: right; font-size:14px;">{{ number_format($adjustment->amount, 2) }}</td>
+                                            <td class="nunitoR400" style="text-align: right; font-size:14px;">{{ number_format($expediaFinalGrandTotal, 2) }}</td>
+                                        </tr>
+                                    @endif
+                                @endforeach
+                                <tr>
+                                    <td colspan="4" class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
+                                        Total Due
+                                    </td>
+                                    <td class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
+                                        {{ number_format($expediaFinalGrandTotal, 2) }}
+                                    </td>
+                                </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -354,6 +548,66 @@ $expediaCollectsCommission = $expediaCollectsInvoices->sum(fn($inv) => (float)($
                                             {{ number_format($expediaCollectsCommission, 2) }}
                                         </td>
                                     </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    @php
+                        // start with commission as base grand total
+                        $expediaCollectsFinalGrandTotal = $expediaCollectsCommission;
+                    @endphp
+                    <div class="section-title">Invoice Summary</div>
+                    <div style="width: 100%; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        border-collapse: collapse; ">
+                        <div style="padding: 16px;">
+                            <table class="guest-table" style="border-spacing: 0 12px;">
+                                <thead style="margin: 0 0 12px 0;">
+                                <tr>
+                                    <th style="color:#847662; width: 4%;  font-size:14px; text-align: left; padding-bottom:12px;">SN</th>
+                                    <th style="color:#847662; width: 26%; font-size:14px; text-align: left; padding-bottom:12px;">Description</th>
+                                    <th style="color:#847662; width: 15%; font-size:14px; text-align: left; padding-bottom:12px;">Debit / Credit</th>
+                                    <th style="color:#847662; width: 15%; font-size:14px;  padding-bottom:12px; text-align: right;">Amount (TK)</th>
+                                    <th style="color:#847662; width: 20%; font-size:14px;  padding-bottom:12px; text-align: right;">Total (TK)</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">01</td>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">Expedia collects Commission  ({{ $expediaExpediaCollectsCommission }}%)</td>
+                                    <td class="nunitoR400" style="  text-align: left; font-size:14px;">Credit</td>
+                                    <td class="nunitoR400" style="  text-align: right; font-size:14px;">{{ number_format($expediaCollectsCommission, 2) }}</td>
+                                    {{--                                expedia colects    Grand Total--}}
+                                    <td class="nunitoR400" style="  text-align: right; font-size:14px;">{{ number_format($expediaCollectsFinalGrandTotal, 2) }}</td>
+                                </tr>
+                                @foreach($monthlyAdjustments as $adjustment)
+                                    @if($adjustment->source === "expediaCollects")
+                                        @php
+                                            // update running total
+                                            if ($adjustment->type === "Debit") {
+                                                $expediaCollectsFinalGrandTotal  -= $adjustment->amount;
+                                            } else {
+                                                $expediaCollectsFinalGrandTotal  += $adjustment->amount;
+                                            }
+                                        @endphp
+                                        <tr>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ sprintf('%02d', $loop->iteration + 1) }}</td>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ $adjustment->purpose }}</td>
+                                            <td class="nunitoR400" style="text-align: left; font-size:14px;">{{ $adjustment->type }}</td>
+                                            <td class="nunitoR400" style="text-align: right; font-size:14px;">{{ number_format($adjustment->amount, 2) }}</td>
+                                            <td class="nunitoR400" style="text-align: right; font-size:14px;">{{ number_format($expediaCollectsFinalGrandTotal, 2) }}</td>
+                                        </tr>
+                                    @endif
+                                @endforeach
+                                <tr>
+                                    <td colspan="4" class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
+                                        Total Due
+                                    </td>
+                                    <td class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
+                                        {{ number_format($expediaCollectsFinalGrandTotal, 2) }}
+                                    </td>
+                                </tr>
                                 </tbody>
                             </table>
                         </div>

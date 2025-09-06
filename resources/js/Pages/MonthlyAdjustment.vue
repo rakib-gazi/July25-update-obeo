@@ -17,6 +17,7 @@ import {
 import {CheckIcon, ChevronUpDownIcon} from "@heroicons/vue/20/solid/index.js";
 // State
 const userData = ref(usePage().props.adjustments);
+const sources = ref(usePage().props.sources);
 const isModalOpen = ref(false);
 const isEditMode = ref(false);
 const isSubmitting = ref(false);
@@ -42,6 +43,7 @@ const data = useForm({
     month: '',
     purpose: '',
     type: '',
+    source: '',
     amount: '',
 });
 // Refresh User List
@@ -56,6 +58,7 @@ const fetchUsers = () => {
 
 // Add or Update User
 const handleSubmit = () => {
+    console.log(data);
     isSubmitting.value = true;
     if (isEditMode.value) {
         data.put(`/dashboard/hotel-invoice/invoice-adjustment/${editingUserId}`, {
@@ -120,6 +123,7 @@ const handleEdit = (item) => {
     data.month = item.month;
     data.purpose = item.purpose;
     data.type = item.type;
+    data.source = item.source;
     data.amount = item.amount;
     if (item.month) {
         const [year, month] = item.month.split('-');
@@ -173,6 +177,7 @@ const tableHeaders = [
     { text: 'Month', value: 'month' },
     { text: 'Purpose', value: 'purpose' },
     { text: 'Type', value: 'type' },
+    { text: 'Source', value: 'source' },
     { text: 'Amount', value: 'amount' },
     { text: 'Actions', value: 'actions' },
 ];
@@ -303,6 +308,102 @@ const tableHeaders = [
                                 </Combobox>
                                 <div v-if="data.errors.type" class="text-red-500 text-sm pt-2">{{ data.errors.type }}</div>
                             </div>
+                            <div>
+                                <Combobox v-model="data.source">
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium">Sources</label>
+
+                                        <div
+                                            class="relative w-full overflow-hidden rounded-lg border border-gray-400 bg-white text-left shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
+                                        >
+                                            <ComboboxInput
+                                                class="peer w-full border-none px-3 pt-4 pb-2 text-sm leading-5 text-gray-900 focus:ring-0"
+                                                :displayValue="(source) => source || ''"
+                                                placeholder=" "
+                                            />
+                                            <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
+                                                <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                            </ComboboxButton>
+                                        </div>
+
+                                        <TransitionRoot
+                                            leave="transition ease-in duration-100"
+                                            leaveFrom="opacity-100"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <ComboboxOptions
+                                                class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm"
+                                            >
+                                                <!-- Placeholder -->
+                                                <ComboboxOption value="" disabled v-slot="{ active }">
+                                                    <li
+                                                        class="relative cursor-default select-none py-2 pl-10 pr-4 text-gray-400"
+                                                        :class="{ 'bg-gray-100': active }"
+                                                    >
+                                                        Please Select
+                                                    </li>
+                                                </ComboboxOption>
+
+                                                <!-- Dynamic sources -->
+                                                <ComboboxOption
+                                                    v-for="source in sources.filter(s => s.source !== 'Expedia')"
+                                                    :key="source.id"
+                                                    :value="source.source"
+                                                    v-slot="{ selected, active }"
+                                                >
+                                                    <li
+                                                        class="relative cursor-default select-none py-2 pl-10 pr-4"
+                                                        :class="{ 'bg-blue-600 text-white': active, 'text-gray-900': !active }"
+                                                    >
+                                                        <span :class="{ 'font-medium': selected, 'font-normal': !selected }">
+                                                          {{ source.source }}
+                                                        </span>
+                                                                                                    <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
+                                                          <CheckIcon class="h-5 w-5" aria-hidden="true" />
+                                                        </span>
+                                                    </li>
+                                                </ComboboxOption>
+
+                                                <!-- Optional static sources -->
+                                                <ComboboxOption value="Combined" v-slot="{ selected, active }">
+                                                    <li
+                                                        class="relative cursor-default select-none py-2 pl-10 pr-4"
+                                                        :class="{ 'bg-blue-600 text-white': active, 'text-gray-900': !active }"
+                                                    >
+                                                        <span :class="{ 'font-medium': selected, 'font-normal': !selected }">Combined</span>
+                                                        <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
+              <CheckIcon class="h-5 w-5" aria-hidden="true" />
+            </span>
+                                                    </li>
+                                                </ComboboxOption>
+                                                <ComboboxOption value="expediaCollects" v-slot="{ selected, active }">
+                                                    <li
+                                                        class="relative cursor-default select-none py-2 pl-10 pr-4"
+                                                        :class="{ 'bg-blue-600 text-white': active, 'text-gray-900': !active }"
+                                                    >
+                                                        <span :class="{ 'font-medium': selected, 'font-normal': !selected }">Expedia Collects</span>
+                                                        <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
+              <CheckIcon class="h-5 w-5" aria-hidden="true" />
+            </span>
+                                                    </li>
+                                                </ComboboxOption>
+                                                <ComboboxOption value="expediaHotelCollects" v-slot="{ selected, active }">
+                                                    <li
+                                                        class="relative cursor-default select-none py-2 pl-10 pr-4"
+                                                        :class="{ 'bg-blue-600 text-white': active, 'text-gray-900': !active }"
+                                                    >
+                                                        <span :class="{ 'font-medium': selected, 'font-normal': !selected }">Expedia Hotel Collects</span>
+                                                        <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
+              <CheckIcon class="h-5 w-5" aria-hidden="true" />
+            </span>
+                                                    </li>
+                                                </ComboboxOption>
+                                            </ComboboxOptions>
+                                        </TransitionRoot>
+                                    </div>
+                                </Combobox>
+                            </div>
+
                             <div>
                                 <label for="amount" class="block text-sm font-medium">Amount</label>
                                 <input v-model="data.amount" type="text" class="w-full border p-2 rounded" />
