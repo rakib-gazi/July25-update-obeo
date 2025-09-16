@@ -97,6 +97,7 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::get('/dashboard/hotel-invoice/all-invoices',[HotelInvoiceController::class,'getAllHotelInvoices'])->name('getAllHotelInvoices');
         Route::get('/dashboard/hotel-invoice/all-invoices/{id}',[HotelInvoiceController::class,'getHotelInvoicesByHotel'])->name('getHotelInvoicesByHotel');
         Route::get('/dashboard/hotel-invoice/eligible-invoices-for-update',[HotelInvoiceController::class,'getInvoiceEligibleForUpdate'])->name('getInvoiceEligibleForUpdate');
+        Route::delete('/dashboard/hotel-invoice/delete/{id}', [HotelInvoiceController::class,'deleteInvoice'])->name('deleteInvoice');
 
         // pdf download route
         Route::post('/reservation/pdf', [ReservationController::class, 'download'])->name('reservation.pdf');
@@ -107,5 +108,7 @@ Route::middleware([TokenVerificationMiddleware::class])
         Route::post('/dashboard/hotel-invoice/invoice-adjustment',[HotelInvoiceController::class,'addAdjustment'])->name('addAdjustment');
         Route::put('/dashboard/hotel-invoice/invoice-adjustment/{id}',[HotelInvoiceController::class,'updateAdjustment'])->name('updateAdjustment');
         Route::get('/dashboard/hotel-invoice/invoice-adjustment/{id}', [HotelInvoiceController::class,'deleteAdjustment'])->name('deleteAdjustment');
+
+
 
     });

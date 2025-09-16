@@ -86,6 +86,41 @@ class HotelInvoiceController extends Controller
             return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
+    public function deleteInvoice($id)
+    {
+        DB::beginTransaction();
+        try {
+            $invoice = HotelInvoice::find($id);
+
+            if (!$invoice) {
+                return redirect()->back()->withErrors(['error' => 'Invoice not found']);
+            }
+
+            $hotelId = $invoice->hotel_id; // get hotel_id for redirect
+
+            // Delete related rooms
+            HotelInvoiceRoom::where('hotel_invoice_id', $invoice->id)->delete();
+
+            // Delete related invoiced reservations
+            InvoicedReservation::where('hotel_invoice_id', $invoice->id)->delete();
+
+            // Delete the invoice itself
+            $invoice->delete();
+
+            DB::commit();
+
+            return redirect()
+                ->route('getHotelInvoicesByHotel', ['id' => $hotelId]) // 👈 use correct route name
+                ->with(['message' => 'Invoice Deleted Successfully', 'status' => true]);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Invoice Delete Error', ['error' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+
     function getAllHotelInvoices(Request $request)
     {
         $hotelNames = Hotel::select('hotels.id','hotels.hotelName')
@@ -385,7 +420,8 @@ class HotelInvoiceController extends Controller
         ]);
         try {
             // 1. Render Blade view to HTML
-            $html = View::make('pdf.invoiceCopy', $data)->render();
+//            $html = View::make('pdf.invoiceCopy', $data)->render();
+            $html = View::make('pdf.invoiceCopy', ['data' => $data])->render();
 
             // 2. Configure custom font (Nunito)
             $defaultConfig = (new ConfigVariables())->getDefaults();

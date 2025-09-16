@@ -17,34 +17,28 @@
     }
     $logoData = imgToBase64(public_path('images/obeologo.png'));
 
+//data from controller
+    $payload = isset($data) ? (is_array($data) ? $data : (array) $data) : [];
 
-    // Make sure $invoices is an array
-if (!isset($invoices)) {
-    $invoices = [];
-} elseif (is_string($invoices)) {
-    $invoices = json_decode($invoices, true) ?: [];
-} elseif (!is_array($invoices)) {
-    $invoices = (array) $invoices;
-}
+    $hotel          = $payload['hotel']          ?? '';
+    $hotelAddress   = $payload['hotelAddress']   ?? '';
+    $month          = $payload['month']          ?? '';
+    $downloadType   = $payload['downloadType']   ?? '';
+//    $invoices       = $payload['invoices']       ?? [];
+    $invoices       = collect($payload['invoices'] ?? []);
+    $invoiceNo      = $payload['invoiceNo']      ?? '';
+    $invoiceDate    = $payload['invoiceDate']    ?? '';
+    $monthlyAdjustments = collect($payload['monthlyAdjustments'] ?? []);
 
-// Ensure these variables exist
-$downloadType = $downloadType ?? '';
+//    commission calculation
 $hotelCollectsCommission = $hotelCollectsCommission ?? 0;
 $expediaCollectsCommission = $expediaCollectsCommission ?? 0;
 
 
-// Ensure adjustments exist
-if (!isset($monthlyAdjustments)) {
-    $monthlyAdjustments = collect();
-} elseif (is_array($monthlyAdjustments)) {
-    $monthlyAdjustments = collect($monthlyAdjustments);
-}
-
-
 
 // Booking.com hotel collects section
-$bookingInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'] ?? '') === 'Booking.com' &&
-        ($inv['payment_method'] ?? '') === 'Hotel Collects')->values();
+$bookingInvoices = $invoices->filter(fn($inv) => ($inv['source'] ?? '') === 'Booking.com' &&
+        ($inv['payment_method'] ?? '') === 'Hotel Collect')->values();
 
 $grandTotal = $bookingInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0));
 $grandCommission = $bookingInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0) * ((float)($inv['hotelCollectsCommission'] ?? $hotelCollectsCommission)) / 100);
@@ -53,8 +47,8 @@ $bookingComHotelCollectsCommission = optional($bookingInvoices->first())['hotelC
 
 
 //Expedia Hotel collects Section
-$expediaInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'] ?? '') === 'Expedia' &&
-        ($inv['payment_method'] ?? '') === 'Hotel Collects')->values();
+$expediaInvoices = $invoices->filter(fn($inv) => ($inv['source'] ?? '') === 'Expedia' &&
+        ($inv['payment_method'] ?? '') === 'Hotel Collect')->values();
 
 $expediaTotal = $expediaInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0));
 $expediaCommission = $expediaInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0) * ((float)($inv['hotelCollectsCommission'] ?? $hotelCollectsCommission)) / 100);
@@ -62,8 +56,8 @@ $expediaHotelCollectsCommission = optional($expediaInvoices->first())['hotelColl
 
 
 //Expedia Expedia-collects Section
-$expediaCollectsInvoices = collect($invoices)->filter(fn($inv) => ($inv['source'] ?? '') === 'Expedia' &&
-        ($inv['payment_method'] ?? '') === 'Expedia Collects')->values();
+$expediaCollectsInvoices = $invoices->filter(fn($inv) => ($inv['source'] ?? '') === 'Expedia' &&
+        ($inv['payment_method'] ?? '') === 'Expedia Collect')->values();
 
 $expediaCollectsTotal = $expediaCollectsInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0));
 $expediaCollectsCommission = $expediaCollectsInvoices->sum(fn($inv) => (float)($inv['total_amount'] ?? 0) * ((float)($inv['expediaCollectsCommission'] ?? $expediaCollectsCommission)) / 100);
@@ -382,6 +376,9 @@ if ($downloadType === "Combined") {
                                             @elseif($downloadType === "expediaCollects" && $expediaCollectsInvoices->isNotEmpty())
                                                 <td style=" padding: 0; font-size: 16px; font-family:'nunito600'; color:red">Payable To Hotel:</td>
                                                 <td style=" padding: 0; font-size: 14px; font-family:'nunito600'; color:red">  {{number_format($expediaCollectsFinalGrandTotal, 2)}} </td>
+                                            @elseif($downloadType === "Combined" )
+                                                <td style=" padding: 0; font-size: 16px; font-family:'nunito600'; color:red">Total Amount (Tk):</td>
+                                                <td style=" padding: 0; font-size: 14px; font-family:'nunito600'; color:red">  {{number_format($combinedGrandTotal, 2)}} </td>
                                             @endif
 
                                         </tr>
@@ -413,6 +410,7 @@ if ($downloadType === "Combined") {
                                 </thead>
                                 <tbody>
                                     @foreach($bookingInvoices  as $invoice)
+
                                         <tr>
                                             <td class="nunitoR400" style="  text-align: left; font-size:14px;">{{ sprintf('%02d', $loop->iteration) }}</td> <!-- SN -->
                                             <td class="nunitoR400" style="  text-align: left; font-size:14px;">{{ formatDate($invoice['check_in'] )}}</td> <!-- C/IN -->
@@ -512,6 +510,7 @@ if ($downloadType === "Combined") {
 
                 </div>
             @endif
+
             <!-- Expedia hotel collects guest info -->
             @if ($downloadType === "expediaHotelCollects" && $expediaInvoices->isNotEmpty())
                 <div class="card">
@@ -728,6 +727,7 @@ if ($downloadType === "Combined") {
 
                 </div>
             @endif
+
             <!-- Expedia expedia-collects guest info -->
             @if ($downloadType === "Combined")
                 @if($bookingInvoices->isNotEmpty())
@@ -931,7 +931,7 @@ if ($downloadType === "Combined") {
                                     @endforeach
                                     <tr>
                                         <td colspan="4" class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
-                                            Total Payable To Hotel
+                                            Total Amount Tk
                                         </td>
                                         <td class="nunitoR400" style="padding: 16px 0 0 0 ; color:red; text-align: right; font-size:14px; ">
                                             {{ number_format($combinedGrandTotal, 2) }}
